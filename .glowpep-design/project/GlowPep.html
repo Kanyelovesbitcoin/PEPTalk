@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlowPep — Specimen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<style>
+:root {
+  --bg: #0B0A08;
+  --bg2: #131210;
+  --ink: #EFE7D2;
+  --ink2: rgba(239,231,210,0.55);
+  --ink3: rgba(239,231,210,0.30);
+  --ink4: rgba(239,231,210,0.12);
+  --rule: rgba(239,231,210,0.10);
+  --rule-bold: rgba(239,231,210,0.22);
+  --gold: #D4A84B;
+  --gold-deep: #8B6F2D;
+  --gold-soft: #E8C97A;
+  --jade: #A8C99A;
+  --jade-deep: #6B9460;
+  --jade-glow: rgba(168,201,154,0.25);
+  --crimson: #E0623F;
+  --display: 'Bricolage Grotesque', sans-serif;
+  --body: 'Geist', sans-serif;
+  --mono: 'Geist Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #050402; min-height: 100vh; font-family: var(--body); overscroll-behavior: none; }
+body {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-x: auto;
+  background:
+    radial-gradient(ellipse 60% 80% at 20% 0%, rgba(212,168,75,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 70% at 80% 100%, rgba(168,201,154,0.025) 0%, transparent 50%),
+    #050402;
+}
+.stage { display: flex; gap: 36px; padding: 56px 56px; align-items: flex-start; }
+.phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.phone-tag {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(239,231,210,0.4);
+}
+.phone-tag .num {
+  background: rgba(239,231,210,0.06);
+  border: 1px solid rgba(239,231,210,0.12);
+  padding: 2px 6px;
+  border-radius: 2px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* SCREEN BASE */
+.s {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  letter-spacing: -0.005em;
+}
+.s::before {
+  /* film grain */
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.91 0 0 0 0 0.82 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.7;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+.s > * { position: relative; z-index: 2; }
+.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding-bottom: 100px; }
+.scroll::-webkit-scrollbar { display: none; }
+.statusbar { height: 44px; flex-shrink: 0; }
+
+/* ── EDITORIAL TYPE ── */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.eyebrow .dot {
+  display: inline-block; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--gold);
+  margin-right: 6px; vertical-align: middle;
+  box-shadow: 0 0 0 2px rgba(212,168,75,0.15);
+}
+.eyebrow.acid .dot { background: var(--jade); box-shadow: 0 0 0 2px rgba(168,201,154,0.15); }
+
+/* hairline rule */
+.hr { height: 1px; background: var(--rule); width: 100%; }
+.hr-bold { height: 1px; background: var(--rule-bold); width: 100%; }
+
+/* ── NAV ── */
+.tabs {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 88px;
+  background: linear-gradient(to top, rgba(11,10,8,0.98) 60%, rgba(11,10,8,0));
+  z-index: 50;
+  display: flex; align-items: flex-start;
+  padding: 14px 18px 0;
+  border-top: 1px solid var(--rule);
+  backdrop-filter: blur(20px);
+}
+.tabs-inner { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.tab svg { width: 20px; height: 20px; color: var(--ink3); transition: all 0.2s; stroke-width: 1.5; }
+.tab span {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 0.12em; color: var(--ink3); text-transform: uppercase;
+  transition: color 0.2s;
+}
+.tab.active svg { color: var(--gold); }
+.tab.active span { color: var(--gold); }
+.tab.active::after {
+  content: ""; position: absolute; bottom: 0; width: 24px; height: 1px;
+  background: var(--gold); margin-top: 4px;
+}
+
+/* ── HERO NUMERAL ── */
+.hero-num {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 144px;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.hero-num .small {
+  font-size: 32px;
+  color: var(--ink3);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  vertical-align: top;
+  display: inline-block;
+  margin-top: 12px;
+  margin-left: 4px;
+}
+
+/* dotted meter */
+.dotmeter { display: inline-flex; gap: 3px; }
+.dotmeter .d {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink4);
+}
+.dotmeter .d.on { background: var(--gold); }
+.dotmeter .d.acid { background: var(--jade); }
+
+/* segment bar */
+.segbar { display: flex; gap: 2px; height: 4px; }
+.segbar .seg { flex: 1; background: var(--ink4); border-radius: 1px; }
+.segbar .seg.on { background: var(--gold); }
+.segbar .seg.acid { background: var(--jade); }
+
+/* spec table */
+.spec { display: grid; grid-template-columns: 1fr auto; gap: 0; }
+.spec .row {
+  display: contents;
+}
+.spec .k {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink3);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.spec .v {
+  font-family: var(--body); font-size: 13px; font-weight: 500;
+  color: var(--ink); text-align: right;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+/* button */
+.btn {
+  width: 100%;
+  height: 56px;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  font-family: var(--body); font-size: 14px; font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.2s;
+}
+.btn:hover { background: var(--gold); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule-bold);
+}
+.btn-ghost:hover { background: var(--ink4); border-color: var(--ink); }
+.btn .arrow {
+  font-family: var(--mono); font-weight: 400;
+  transition: transform 0.2s;
+}
+.btn:hover .arrow { transform: translateX(4px); }
+
+/* ─── SCAN: CINEMATIC ─── */
+.scan-screen { background: #050402; }
+.scan-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 45%, transparent 0%, rgba(5,4,2,0.7) 100%);
+  pointer-events: none;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+.face-oval {
+  animation: pulse 2.6s ease-in-out infinite;
+}
+@keyframes scanline {
+  0% { transform: translateY(-200px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(200px); opacity: 0; }
+}
+.scanline {
+  position: absolute; left: 50%; top: 50%;
+  width: 240px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform: translateX(-50%) translateY(-50%);
+  animation: scanline 3.4s ease-in-out infinite;
+  filter: blur(0.5px);
+}
+
+/* tick marks */
+.ticks { display: flex; gap: 0; align-items: center; }
+.ticks .tk { width: 1px; height: 8px; background: var(--ink4); }
+.ticks .tk.on { background: var(--gold); height: 12px; }
+
+/* badge / pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9px;
+  font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink2);
+  padding: 4px 8px;
+  border: 1px solid var(--rule-bold);
+  border-radius: 2px;
+}
+.pill.gold { color: var(--gold); border-color: rgba(212,168,75,0.4); }
+.pill.acid { color: var(--jade); border-color: rgba(168,201,154,0.4); }
+.pill.solid {
+  background: var(--ink); color: var(--bg); border: none;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ─── ICONS — custom 1.5px line set ─── */
+const I = {
+  home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg>,
+  flask: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6M10 3v7l-5 9a1.5 1.5 0 001.3 2.2h11.4A1.5 1.5 0 0019 19l-5-9V3"/><path d="M7.5 14h9"/></svg>,
+  scan: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V5a2 2 0 012-2h3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><circle cx="12" cy="12" r="3.5"/></svg>,
+  log: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>,
+  book: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-1.5 1.5H6a1 1 0 01-1-1zM5 17h14"/></svg>,
+  arrow: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/></svg>,
+  arrowUp: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>,
+  spark: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>,
+  close: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>,
+  flip: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a9 9 0 00-15-3L3 8M3 16a9 9 0 0015 3l3-3M3 4v4h4M21 20v-4h-4"/></svg>,
+  search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>,
+  bookmark: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 12 10 17 19 7"/></svg>,
+  gallery: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+};
+
+/* ─── face profile illustration (custom hand-drawn line) ─── */
+const FaceProfile = ({size = 110, stroke = 'var(--gold)', op = 1}) => (
+  <svg width={size} height={size * 1.1} viewBox="0 0 110 120" fill="none" style={{opacity: op}}>
+    <path d="M30 38 C30 22 42 12 56 12 C72 12 84 24 84 42 C84 50 82 56 80 60 L82 70 C82 73 80 74 77 74 L75 74 L75 86 C75 92 70 96 64 96 L52 96 L52 108"
+      stroke={stroke} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* eye */}
+    <path d="M68 46 C70 44 74 44 76 46" stroke={stroke} strokeWidth="1.2" strokeLinecap="round"/>
+    {/* nose */}
+    <path d="M82 54 L78 64 L82 66" stroke={stroke} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* mouth */}
+    <path d="M70 80 C72 81 76 81 78 80" stroke={stroke} strokeWidth="1.2" strokeLinecap="round"/>
+    {/* hair */}
+    <path d="M30 38 C28 30 32 22 38 18 C44 14 56 10 66 12 C76 14 82 20 84 30"
+      stroke={stroke} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    {/* dot markers */}
+    <circle cx="56" cy="32" r="1" fill={stroke}/>
+    <circle cx="62" cy="58" r="1" fill={stroke}/>
+    <circle cx="64" cy="80" r="1" fill={stroke}/>
+  </svg>
+);
+
+/* ─── TABS ─── */
+function Tabs({ active }) {
+  const items = [
+    {id:'home', label:'Today', icon:I.home},
+    {id:'stack', label:'Stack', icon:I.flask},
+    {id:'scan', label:'Scan', icon:I.scan},
+    {id:'log', label:'Log', icon:I.log},
+    {id:'lib', label:'Library', icon:I.book},
+  ];
+  return (
+    <div className="tabs">
+      <div className="tabs-inner">
+        {items.map(it => (
+          <div key={it.id} className={`tab ${active===it.id?'active':''}`} style={{position:'relative'}}>
+            {it.icon}
+            <span>{it.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   HOME / TODAY
+   ════════════════════════════════════════════════════════════ */
+function Home() {
+  return (
+    <div className="s">
+      <div className="statusbar"/>
+      <div className="scroll">
+        {/* Masthead */}
+        <div style={{padding:'12px 22px 18px', display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
+          <div>
+            <div style={{fontFamily:'var(--display)', fontSize:18, fontWeight:700, letterSpacing:'-0.02em'}}>
+              Glow<span style={{fontWeight:400, color:'var(--gold)'}}>pep</span>
+            </div>
+            <div className="eyebrow" style={{marginTop:2}}>N°014 · WED 28 JAN</div>
+          </div>
+          <div style={{display:'flex', gap:8}}>
+            <div style={{width:32, height:32, border:'1px solid var(--rule-bold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink2)'}}>
+              {React.cloneElement(I.search, {style:{width:14, height:14}})}
+            </div>
+          </div>
+        </div>
+        <div className="hr-bold"/>
+
+        {/* Hero score: editorial spread */}
+        <div style={{padding:'24px 22px 20px', display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-start'}}>
+          <div>
+            <div className="eyebrow" style={{marginBottom:14}}><span className="dot"/>GLOW SCORE</div>
+            <div className="hero-num">
+              074<span className="small">/100</span>
+            </div>
+            <div style={{display:'flex', alignItems:'center', gap:8, marginTop:10}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--jade)', fontWeight:600}}>↑ +08</span>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.1em'}}>VS LAST WEEK</span>
+            </div>
+          </div>
+          <div style={{paddingTop:4}}>
+            <FaceProfile size={96}/>
+          </div>
+        </div>
+
+        <div className="hr"/>
+
+        {/* Sub-metrics inline */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid var(--rule)'}}>
+          {[
+            {k:'COLLAGEN', v:'73', d:'+04'},
+            {k:'TEXTURE', v:'72', d:'+02'},
+            {k:'LUMINOSITY', v:'78', d:'+06'},
+          ].map((m,i,a) => (
+            <div key={m.k} style={{padding:'18px 14px 16px', borderRight: i<a.length-1 ? '1px solid var(--rule)' : 'none'}}>
+              <div className="eyebrow" style={{fontSize:9, marginBottom:8}}>{m.k}</div>
+              <div style={{fontFamily:'var(--display)', fontSize:32, fontWeight:600, letterSpacing:'-0.03em', lineHeight:1, fontVariantNumeric:'tabular-nums'}}>{m.v}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--jade)', marginTop:6, fontWeight:500}}>↑ {m.d}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Streak strip */}
+        <div style={{padding:'18px 22px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+          <div>
+            <div className="eyebrow"><span className="dot"/>ACTIVE STREAK</div>
+            <div style={{display:'flex', alignItems:'baseline', gap:8, marginTop:8}}>
+              <span style={{fontFamily:'var(--display)', fontSize:42, fontWeight:700, letterSpacing:'-0.04em', lineHeight:1}}>14</span>
+              <span style={{fontFamily:'var(--body)', fontSize:14, color:'var(--ink2)', fontWeight:500}}>days</span>
+            </div>
+          </div>
+          {/* day dots */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:4, width:128}}>
+            {Array.from({length:14}).map((_,i) => (
+              <div key={i} style={{
+                aspectRatio:'1', borderRadius:1,
+                background: i<14 ? 'var(--gold)' : 'var(--ink4)',
+                opacity: i<14 ? (0.45 + i/26) : 1,
+              }}/>
+            ))}
+          </div>
+        </div>
+        <div className="hr-bold"/>
+
+        {/* ── FORECAST PAYOFF — the "where you're heading" hero ── */}
+        <div style={{padding:'24px 22px 8px', position:'relative'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14}}>
+            <div className="eyebrow"><span className="dot" style={{background:'var(--jade)', boxShadow:'0 0 0 2px rgba(168,201,154,0.2)'}}/>YOUR 12-WEEK FORECAST</div>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--jade)', fontWeight:600, letterSpacing:'0.1em'}}>ON TRACK</span>
+          </div>
+          <div style={{fontFamily:'var(--display)', fontSize:26, fontWeight:600, letterSpacing:'-0.025em', lineHeight:1.1, marginBottom:18}}>
+            You're trending toward a <span style={{color:'var(--jade)'}}>92</span><span style={{color:'var(--ink3)'}}>/100</span>
+            <br/><span style={{color:'var(--ink2)', fontWeight:500}}>top 4% glow score by April.</span>
+          </div>
+
+          {/* the transformation reveal */}
+          <div style={{
+            display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:0, alignItems:'stretch',
+            border:'1px solid var(--rule-bold)',
+            background:'linear-gradient(135deg, rgba(168,201,154,0.04) 0%, rgba(212,168,75,0.06) 100%)',
+            marginBottom:18, padding:0
+          }}>
+            {/* NOW */}
+            <div style={{padding:'18px 16px', borderRight:'1px solid var(--rule)'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18}}>
+                <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.18em'}}>NOW</span>
+                <span style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700, color:'var(--ink2)', letterSpacing:'-0.02em', lineHeight:1}}>74</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'center', marginBottom:10}}>
+                <FaceProfile size={70} stroke="var(--ink2)" op={0.7}/>
+              </div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.12em', textAlign:'center'}}>WK 06 · TODAY</div>
+            </div>
+            {/* arrow */}
+            <div style={{display:'flex', alignItems:'center', justifyContent:'center', padding:'0 8px', color:'var(--gold)'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/>
+              </svg>
+            </div>
+            {/* POTENTIAL */}
+            <div style={{padding:'18px 16px', position:'relative', background:'rgba(168,201,154,0.03)'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:18}}>
+                <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--jade)', fontWeight:600, letterSpacing:'0.18em'}}>POTENTIAL</span>
+                <span style={{fontFamily:'var(--display)', fontSize:32, fontWeight:800, color:'var(--jade)', letterSpacing:'-0.03em', lineHeight:1, textShadow:'0 0 20px rgba(168,201,154,0.4)'}}>92</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'center', marginBottom:10, filter:'drop-shadow(0 0 12px rgba(168,201,154,0.3))'}}>
+                <FaceProfile size={80} stroke="var(--jade)" op={1}/>
+              </div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--jade)', letterSpacing:'0.12em', textAlign:'center', fontWeight:600}}>WK 18 · APRIL</div>
+            </div>
+          </div>
+
+          {/* gain breakdown */}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:6}}>
+            {[
+              {k:'CLARITY', v:'+18'},
+              {k:'TEXTURE', v:'+14'},
+              {k:'GLOW', v:'+22'},
+            ].map(g => (
+              <div key={g.k} style={{textAlign:'center', padding:'10px 6px', border:'1px solid var(--rule)'}}>
+                <div style={{fontFamily:'var(--display)', fontSize:18, fontWeight:700, color:'var(--jade)', letterSpacing:'-0.02em', lineHeight:1}}>{g.v}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:8, color:'var(--ink3)', letterSpacing:'0.14em', marginTop:5}}>{g.k}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.14em', marginTop:14, textAlign:'center'}}>
+            FORECAST BASED ON 14 DAYS · UPDATES DAILY
+          </div>
+        </div>
+
+        <div className="hr-bold" style={{marginTop:24}}/>
+
+        {/* Today's Protocol */}
+        <div style={{padding:'22px 22px 8px'}}>
+          <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:18}}>
+            <div>
+              <div className="eyebrow" style={{marginBottom:6}}>SECTION 01</div>
+              <div style={{fontFamily:'var(--display)', fontSize:24, fontWeight:600, letterSpacing:'-0.02em', lineHeight:1}}>
+                Today's protocol
+              </div>
+            </div>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)'}}>2/3</span>
+          </div>
+        </div>
+
+        {[
+          {n:'01', name:'Argireline', sub:'Acetyl Hexapeptide-8', dose:'0.5 mL', time:'AM', done:true, target:'Texture'},
+          {n:'02', name:'GHK-Cu', sub:'Copper Tripeptide', dose:'0.3 mL', time:'AM', done:true, target:'Collagen'},
+          {n:'03', name:'BPC-157', sub:'Body Protective Compound', dose:'0.5 mL', time:'PM', done:false, target:'Barrier'},
+        ].map(p => (
+          <div key={p.n} style={{padding:'14px 22px', display:'grid', gridTemplateColumns:'auto 1fr auto', gap:16, alignItems:'center', borderTop:'1px solid var(--rule)'}}>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color: p.done ? 'var(--gold)' : 'var(--ink3)', letterSpacing:'0.1em'}}>{p.n}</span>
+            <div>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:3}}>
+                <span style={{fontFamily:'var(--display)', fontSize:17, fontWeight:600, letterSpacing:'-0.01em', textDecoration: p.done ? 'line-through' : 'none', textDecorationColor:'var(--ink3)', color: p.done ? 'var(--ink2)' : 'var(--ink)'}}>{p.name}</span>
+                {!p.done && <span style={{width:5, height:5, borderRadius:50, background:'var(--jade)', boxShadow:'0 0 6px var(--jade)'}}/>}
+              </div>
+              <div style={{fontFamily:'var(--body)', fontSize:11, color:'var(--ink3)', letterSpacing:'0.02em'}}>{p.sub} · {p.target}</div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:13, fontWeight:500, color: p.done ? 'var(--ink2)' : 'var(--ink)', fontVariantNumeric:'tabular-nums'}}>{p.dose}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.16em', marginTop:2}}>{p.time}</div>
+            </div>
+          </div>
+        ))}
+        <div className="hr"/>
+
+        {/* Action: log today */}
+        <div style={{padding:'24px 22px 0'}}>
+          <button className="btn">
+            <span>Log today's check-in</span>
+            <span className="arrow">→</span>
+          </button>
+          <div style={{textAlign:'center', marginTop:14, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.14em'}}>
+            EARNS +120 XP · STREAK CONTINUES
+          </div>
+        </div>
+
+        {/* Footer mark */}
+        <div style={{padding:'40px 22px 24px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.18em'}}>GLOWPEP — SPECIMEN/2026</span>
+          <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink3)', letterSpacing:'0.1em'}}>vol. 014</span>
+        </div>
+      </div>
+      <Tabs active="home"/>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCAN — Cinematic
+   ════════════════════════════════════════════════════════════ */
+function Scan() {
+  return (
+    <div className="s scan-screen" style={{background:'#040301'}}>
+      {/* faux camera background */}
+      <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 35%, #2a2418 0%, #0a0805 70%, #040301 100%)'}}/>
+      <div className="scan-vignette"/>
+
+      <div style={{position:'relative', zIndex:5, padding:'52px 22px 14px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+        <div style={{width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink)', cursor:'pointer'}}>
+          {React.cloneElement(I.close, {style:{width:18, height:18}})}
+        </div>
+        <div className="eyebrow" style={{color:'var(--ink2)'}}><span className="dot"/>SPECIMEN · 03.28.26</div>
+        <div style={{width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink)', cursor:'pointer'}}>
+          {React.cloneElement(I.flip, {style:{width:18, height:18}})}
+        </div>
+      </div>
+
+      {/* Center frame */}
+      <div style={{position:'relative', flex:1, display:'flex', alignItems:'center', justifyContent:'center'}}>
+        {/* corner brackets */}
+        <svg width="280" height="360" style={{position:'absolute'}} viewBox="0 0 280 360">
+          {[[20,20,1,1],[260,20,-1,1],[20,340,1,-1],[260,340,-1,-1]].map(([x,y,sx,sy],i) => (
+            <g key={i} stroke="var(--gold)" strokeWidth="1" fill="none" strokeLinecap="square">
+              <line x1={x} y1={y} x2={x+18*sx} y2={y}/>
+              <line x1={x} y1={y} x2={x} y2={y+18*sy}/>
+            </g>
+          ))}
+        </svg>
+
+        {/* face oval */}
+        <svg width="220" height="290" className="face-oval" style={{position:'relative', zIndex:2}}>
+          <ellipse cx="110" cy="145" rx="92" ry="125"
+            fill="none" stroke="var(--gold)" strokeWidth="0.8" strokeDasharray="2 4"/>
+          <ellipse cx="110" cy="145" rx="92" ry="125"
+            fill="rgba(212,168,75,0.04)" stroke="none"/>
+        </svg>
+
+        <div className="scanline"/>
+
+        {/* tick marks bottom */}
+        <div style={{position:'absolute', bottom:64, left:'50%', transform:'translateX(-50%)', display:'flex', flexDirection:'column', alignItems:'center', gap:10}}>
+          <div className="ticks">
+            {Array.from({length:21}).map((_,i) => (
+              <div key={i} className={`tk ${i===10?'on':''}`} style={{marginRight:4}}/>
+            ))}
+          </div>
+          <span className="eyebrow" style={{color:'var(--ink2)'}}>ALIGN FACE WITH FRAME</span>
+        </div>
+      </div>
+
+      {/* Capture row */}
+      <div style={{position:'relative', zIndex:5, padding:'0 30px 36px'}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24}}>
+          <div style={{textAlign:'left'}}>
+            <div className="eyebrow" style={{color:'var(--ink3)'}}>LIGHTING</div>
+            <div style={{fontFamily:'var(--display)', fontSize:14, fontWeight:600, color:'var(--ink2)', marginTop:3}}>Optimal</div>
+          </div>
+          <div style={{textAlign:'center'}}>
+            <div className="eyebrow" style={{color:'var(--ink3)'}}>FOCUS</div>
+            <div style={{fontFamily:'var(--display)', fontSize:14, fontWeight:600, color:'var(--gold)', marginTop:3}}>Locked</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div className="eyebrow" style={{color:'var(--ink3)'}}>FRAME</div>
+            <div style={{fontFamily:'var(--display)', fontSize:14, fontWeight:600, color:'var(--ink2)', marginTop:3}}>Centered</div>
+          </div>
+        </div>
+
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+          <div style={{width:44, height:44, border:'1px solid var(--rule-bold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink2)', cursor:'pointer'}}>
+            {React.cloneElement(I.gallery, {style:{width:18, height:18}})}
+          </div>
+          {/* capture: outer ring + filled disk */}
+          <div style={{width:78, height:78, borderRadius:'50%', border:'1px solid var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 0 0 6px rgba(212,168,75,0.06)'}}>
+            <div style={{width:62, height:62, borderRadius:'50%', background:'var(--gold)', boxShadow:'0 0 24px rgba(212,168,75,0.4)'}}/>
+          </div>
+          <div style={{width:44, height:44, border:'1px solid var(--rule-bold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink2)', fontFamily:'var(--mono)', fontSize:11, cursor:'pointer'}}>
+            3s
+          </div>
+        </div>
+
+        <div style={{textAlign:'center', marginTop:18, fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.18em'}}>
+          EDUCATIONAL ANALYSIS — NOT MEDICAL ADVICE
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   PROGRESS — Editorial data spread
+   ════════════════════════════════════════════════════════════ */
+function Progress() {
+  // 12-week line chart data
+  const series = [48, 51, 49, 55, 58, 57, 62, 66, 64, 69, 71, 74];
+  const max = 100, min = 30;
+  const W = 360, H = 100, PAD = 8;
+  const points = series.map((v,i) => [
+    PAD + (i / (series.length-1)) * (W - PAD*2),
+    H - PAD - ((v - min) / (max - min)) * (H - PAD*2)
+  ]);
+  const path = points.map((p,i) => (i===0?'M':'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = path + ` L ${points[points.length-1][0]} ${H} L ${points[0][0]} ${H} Z`;
+
+  return (
+    <div className="s">
+      <div className="statusbar"/>
+      <div className="scroll">
+        {/* Masthead */}
+        <div style={{padding:'12px 22px 18px'}}>
+          <div className="eyebrow"><span className="dot"/>SECTION 02 · PROGRESS</div>
+          <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:6}}>
+            <div style={{fontFamily:'var(--display)', fontSize:36, fontWeight:700, letterSpacing:'-0.03em', lineHeight:0.95}}>
+              The<br/><span style={{color:'var(--gold)'}}>glow-up</span>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.1em'}}>VOL.</div>
+              <div style={{fontFamily:'var(--display)', fontSize:24, fontWeight:600, color:'var(--gold)', letterSpacing:'-0.02em'}}>014</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="hr-bold"/>
+
+        {/* Big delta */}
+        <div style={{padding:'24px 22px 20px', display:'grid', gridTemplateColumns:'auto 1fr', gap:18, alignItems:'flex-start'}}>
+          <div>
+            <div className="eyebrow" style={{marginBottom:10}}>DELTA · 12 WEEKS</div>
+            <div style={{fontFamily:'var(--display)', fontSize:96, fontWeight:800, color:'var(--jade)', letterSpacing:'-0.05em', lineHeight:0.85, fontVariantNumeric:'tabular-nums'}}>+22</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', marginTop:6, letterSpacing:'0.12em'}}>POINTS · GLOW SCORE</div>
+          </div>
+          <div style={{paddingTop:8}}>
+            <div style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink2)', lineHeight:1.55, fontWeight:400}}>
+              "Texture and luminosity show the strongest gains. Maintain GHK-Cu nightly."
+            </div>
+            <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', marginTop:10, letterSpacing:'0.14em'}}>— GP/AI READOUT</div>
+          </div>
+        </div>
+
+        <div className="hr"/>
+
+        {/* Line chart */}
+        <div style={{padding:'20px 22px 14px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', marginBottom:12}}>
+            <div className="eyebrow">TREND · WK 01 → WK 12</div>
+            <div style={{display:'flex', gap:10, alignItems:'center'}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)'}}>52</span>
+              <div style={{width:20, height:1, background:'var(--gold)'}}/>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--gold)', fontWeight:600}}>74</span>
+            </div>
+          </div>
+          <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="120" style={{display:'block'}}>
+            <defs>
+              <linearGradient id="lineFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(212,168,75,0.18)"/>
+                <stop offset="100%" stopColor="rgba(212,168,75,0)"/>
+              </linearGradient>
+            </defs>
+            {/* gridlines */}
+            {[0.25,0.5,0.75].map(p => (
+              <line key={p} x1={PAD} y1={PAD + p*(H-PAD*2)} x2={W-PAD} y2={PAD + p*(H-PAD*2)} stroke="var(--rule)" strokeWidth="0.5" strokeDasharray="2 3"/>
+            ))}
+            <path d={area} fill="url(#lineFill)"/>
+            <path d={path} fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            {points.map((p,i) => i === points.length-1 && (
+              <g key={i}>
+                <circle cx={p[0]} cy={p[1]} r="3" fill="var(--bg)" stroke="var(--gold)" strokeWidth="1.5"/>
+                <circle cx={p[0]} cy={p[1]} r="6" fill="rgba(212,168,75,0.2)"/>
+              </g>
+            ))}
+          </svg>
+          <div style={{display:'flex', justifyContent:'space-between', marginTop:8, fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.1em'}}>
+            <span>W1</span><span>W4</span><span>W8</span><span>W12</span>
+          </div>
+        </div>
+
+        <div className="hr"/>
+
+        {/* Metric breakdown — bullet meter table */}
+        <div style={{padding:'22px 22px 8px'}}>
+          <div className="eyebrow" style={{marginBottom:18}}>BREAKDOWN · BIOMETRICS</div>
+          {[
+            {k:'Hydration', v:72, d:'+05'},
+            {k:'Texture', v:68, d:'+09'},
+            {k:'Luminosity', v:78, d:'+12'},
+            {k:'Firmness', v:60, d:'+03'},
+            {k:'Barrier', v:74, d:'+04'},
+            {k:'Clarity', v:65, d:'+07'},
+          ].map((m,i,a) => (
+            <div key={m.k} style={{display:'grid', gridTemplateColumns:'auto 1fr auto auto', gap:14, alignItems:'center', padding:'12px 0', borderBottom: i<a.length-1 ? '1px solid var(--rule)' : 'none'}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.1em'}}>{String(i+1).padStart(2,'0')}</span>
+              <span style={{fontFamily:'var(--display)', fontSize:15, fontWeight:600, letterSpacing:'-0.01em'}}>{m.k}</span>
+              <div className="dotmeter">
+                {Array.from({length:10}).map((_,j) => (
+                  <div key={j} className={`d ${j < Math.round(m.v/10) ? 'on' : ''}`}/>
+                ))}
+              </div>
+              <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink2)', fontWeight:500, fontVariantNumeric:'tabular-nums', minWidth:54, textAlign:'right'}}>
+                {m.v} <span style={{color:'var(--jade)', marginLeft:4}}>{m.d}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="hr"/>
+
+        {/* Compare frames */}
+        <div style={{padding:'22px 22px 8px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14}}>
+            <div className="eyebrow">SIDE-BY-SIDE</div>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)'}}>SWIPE →</span>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+            {[
+              {label:'BEFORE', date:'06 NOV 25', score:52, current:false},
+              {label:'NOW', date:'28 JAN 26', score:74, current:true},
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{
+                  aspectRatio:'3/4',
+                  background: s.current
+                    ? 'linear-gradient(135deg, rgba(212,168,75,0.15) 0%, rgba(212,168,75,0.04) 100%)'
+                    : 'rgba(239,231,210,0.04)',
+                  border: s.current ? '1px solid rgba(212,168,75,0.4)' : '1px solid var(--rule)',
+                  display:'flex', alignItems:'flex-end', padding:14, position:'relative',
+                  marginBottom:10
+                }}>
+                  <FaceProfile size={70} stroke={s.current ? 'var(--gold)' : 'var(--ink3)'} op={s.current ? 1 : 0.6}/>
+                  <span className="eyebrow" style={{position:'absolute', top:10, right:10, color: s.current ? 'var(--gold)' : 'var(--ink3)'}}>
+                    {s.label}
+                  </span>
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline'}}>
+                  <span style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.1em'}}>{s.date}</span>
+                  <span style={{fontFamily:'var(--display)', fontSize:24, fontWeight:600, color: s.current ? 'var(--gold)' : 'var(--ink2)', letterSpacing:'-0.02em'}}>{s.score}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-ghost" style={{marginTop:18}}>
+            <span>Export progress card</span>
+            <span className="arrow">↗</span>
+          </button>
+        </div>
+
+        <div style={{height:24}}/>
+      </div>
+      <Tabs active="home"/>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   LIBRARY — Magazine entries
+   ════════════════════════════════════════════════════════════ */
+function Library() {
+  const [active, setActive] = useState('TEXTURE');
+  const filters = [
+    {k:'TEXTURE', n:5},
+    {k:'HYDRATION', n:1},
+    {k:'COLLAGEN', n:7},
+    {k:'BARRIER', n:4},
+    {k:'CLARITY', n:3},
+  ];
+  const peptides = [
+    {n:'01', name:'Argireline', aka:'Acetyl Hexapeptide-8', desc:'A topical peptide studied for softening expression lines by calming repetitive muscle movement.', route:'Topical', evidence:'Studied · 12 RCTs', budget:2, status:'COSMETIC · LEGAL', mode:'gold'},
+    {n:'02', name:'GHK-Cu', aka:'Copper Tripeptide-1', desc:'Promotes collagen synthesis and barrier recovery. The gold-standard topical signaling peptide.', route:'Topical', evidence:'Strong · 40+', budget:2, status:'COSMETIC · LEGAL', mode:'gold'},
+    {n:'03', name:'Matrixyl 3000', aka:'Palmitoyl Tripeptide-38', desc:'Stimulates collagen and hyaluronic acid synthesis in the dermal matrix.', route:'Topical', evidence:'Studied · 8 RCTs', budget:1, status:'COSMETIC · LEGAL', mode:'gold'},
+    {n:'04', name:'Epithalon', aka:'Telomere Peptide', desc:'Telomere-associated peptide studied for cellular renewal. Research-only in most regions.', route:'Topical / Inj.', evidence:'Early · animal', budget:3, status:'RESEARCH USE', mode:'crimson'},
+  ];
+
+  return (
+    <div className="s">
+      <div className="statusbar"/>
+      <div className="scroll">
+        {/* Masthead */}
+        <div style={{padding:'12px 22px 0'}}>
+          <div className="eyebrow"><span className="dot"/>INDEX</div>
+          <div style={{fontFamily:'var(--display)', fontSize:36, fontWeight:700, letterSpacing:'-0.03em', lineHeight:0.95, marginTop:6}}>
+            Peptide<br/><span style={{color:'var(--gold)'}}>library</span>
+          </div>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:14}}>
+            <span style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink2)', maxWidth:240, lineHeight:1.4}}>
+              Skin-focused legal peptides, sorted by goal.
+            </span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.1em'}}>20 ENTRIES</span>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div style={{padding:'18px 22px 14px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:12, padding:'10px 0', borderBottom:'1px solid var(--rule-bold)'}}>
+            {React.cloneElement(I.search, {style:{width:14, height:14, color:'var(--ink3)'}})}
+            <span style={{fontFamily:'var(--body)', fontSize:14, color:'var(--ink3)', flex:1}}>Search peptides…</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.1em'}}>⌘K</span>
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div style={{display:'flex', gap:0, padding:'0 22px 18px', overflowX:'auto', scrollbarWidth:'none'}}>
+          {filters.map(f => (
+            <div key={f.k} onClick={()=>setActive(f.k)} style={{
+              flexShrink:0,
+              padding:'8px 14px 8px 0',
+              marginRight:14,
+              fontFamily:'var(--mono)', fontSize:10, fontWeight:500,
+              letterSpacing:'0.14em',
+              color: active === f.k ? 'var(--ink)' : 'var(--ink3)',
+              borderBottom: active === f.k ? '1px solid var(--gold)' : '1px solid transparent',
+              cursor:'pointer',
+              display:'flex', alignItems:'center', gap:6,
+              transition:'color 0.2s',
+            }}>
+              {f.k}
+              <span style={{
+                fontFamily:'var(--mono)', fontSize:9,
+                color: active === f.k ? 'var(--gold)' : 'var(--ink3)',
+                background: active === f.k ? 'rgba(212,168,75,0.1)' : 'transparent',
+                border:'1px solid',
+                borderColor: active === f.k ? 'rgba(212,168,75,0.3)' : 'var(--rule)',
+                padding:'1px 4px', borderRadius:1,
+              }}>{f.n}</span>
+            </div>
+          ))}
+        </div>
+        <div className="hr-bold"/>
+
+        {/* Peptide entries */}
+        {peptides.map((p,i) => (
+          <div key={p.n} style={{padding:'24px 22px', borderBottom:'1px solid var(--rule)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12}}>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.16em'}}>N° {p.n}</span>
+                <span className={`pill ${p.mode === 'crimson' ? '' : 'gold'}`} style={p.mode === 'crimson' ? {color:'var(--crimson)', borderColor:'rgba(224,98,63,0.4)'} : {}}>{p.status}</span>
+              </div>
+              <div style={{color:'var(--ink3)', cursor:'pointer'}}>
+                {React.cloneElement(I.bookmark, {style:{width:16, height:16}})}
+              </div>
+            </div>
+            <div style={{fontFamily:'var(--display)', fontSize:30, fontWeight:700, letterSpacing:'-0.03em', lineHeight:0.95, marginBottom:6}}>
+              {p.name}
+            </div>
+            <div style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink3)', marginBottom:14, fontWeight:500, letterSpacing:'0.01em'}}>
+              {p.aka}
+            </div>
+            <div style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink2)', lineHeight:1.55, marginBottom:18}}>
+              {p.desc}
+            </div>
+            {/* spec table */}
+            <div className="spec">
+              <div className="k">Route</div><div className="v">{p.route}</div>
+              <div className="k">Evidence</div><div className="v">{p.evidence}</div>
+              <div className="k">Budget</div>
+              <div className="v">
+                <span className="dotmeter">
+                  {Array.from({length:3}).map((_,j) => <span key={j} className={`d ${j < p.budget ? 'on':''}`}/>)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div style={{height:24}}/>
+      </div>
+      <Tabs active="lib"/>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOG — Daily check-in
+   ════════════════════════════════════════════════════════════ */
+function Log() {
+  const [r, setR] = useState({Hydration:3, Texture:3, Glow:4, Sensitivity:2, Firmness:3});
+  const labels = ['Poor','Off','Okay','Good','Glowing'];
+
+  return (
+    <div className="s">
+      <div className="statusbar"/>
+      <div className="scroll">
+        {/* Masthead */}
+        <div style={{padding:'12px 22px 18px'}}>
+          <div className="eyebrow"><span className="dot"/>DAILY · DAY 014</div>
+          <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginTop:6}}>
+            <div style={{fontFamily:'var(--display)', fontSize:36, fontWeight:700, letterSpacing:'-0.03em', lineHeight:0.95}}>
+              How does it<br/><span style={{color:'var(--gold)'}}>feel today?</span>
+            </div>
+            <div style={{textAlign:'right', paddingTop:6}}>
+              <div style={{fontFamily:'var(--display)', fontSize:32, fontWeight:600, color:'var(--gold)', letterSpacing:'-0.03em', lineHeight:1}}>28</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.16em', marginTop:2}}>JAN ·26</div>
+            </div>
+          </div>
+        </div>
+        <div className="hr-bold"/>
+
+        {/* Rating sections — type-led, no buttons */}
+        {Object.entries(r).map(([k, v], i, arr) => (
+          <div key={k} style={{padding:'22px 22px', borderBottom: i < arr.length-1 ? '1px solid var(--rule)' : 'none'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14}}>
+              <div>
+                <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.14em'}}>{String(i+1).padStart(2,'0')} ·</span>
+                <span style={{fontFamily:'var(--display)', fontSize:20, fontWeight:600, letterSpacing:'-0.02em', marginLeft:8}}>{k}</span>
+              </div>
+              <span style={{fontFamily:'var(--body)', fontSize:13, fontWeight:600, letterSpacing:'0.01em', color: v >= 4 ? 'var(--jade)' : v <= 2 ? 'var(--crimson)' : 'var(--gold)'}}>
+                {labels[v-1]}
+              </span>
+            </div>
+            {/* segmented rating - hairline tracks */}
+            <div style={{display:'flex', gap:6}}>
+              {[1,2,3,4,5].map(n => (
+                <div key={n} onClick={()=>setR(s=>({...s, [k]:n}))} style={{
+                  flex:1, cursor:'pointer', position:'relative', paddingTop:14,
+                }}>
+                  <div style={{
+                    height: n === v ? 4 : 2,
+                    background: n === v ? (v >= 4 ? 'var(--jade)' : v <= 2 ? 'var(--crimson)' : 'var(--gold)') : 'var(--rule-bold)',
+                    transition:'all 0.2s',
+                    boxShadow: n === v ? `0 0 8px ${v >= 4 ? 'var(--jade)' : v <= 2 ? 'var(--crimson)' : 'var(--gold)'}` : 'none',
+                  }}/>
+                  <div style={{
+                    fontFamily:'var(--mono)', fontSize:10, color: n === v ? 'var(--ink)' : 'var(--ink3)',
+                    marginTop:6, fontWeight: n === v ? 600 : 400, letterSpacing:'0.05em',
+                  }}>{n}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="hr-bold"/>
+
+        {/* Doses */}
+        <div style={{padding:'22px 22px 8px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:14}}>
+            <div className="eyebrow">DOSES TODAY</div>
+            <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink2)'}}>2/3</div>
+          </div>
+          {[
+            {n:'Argireline 0.5mL', t:'08:14', done:true},
+            {n:'GHK-Cu 0.3mL', t:'08:16', done:true},
+            {n:'BPC-157 0.5mL', t:'PENDING', done:false},
+          ].map((d, i, a) => (
+            <div key={d.n} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom: i < a.length-1 ? '1px solid var(--rule)' : 'none'}}>
+              <div style={{display:'flex', alignItems:'center', gap:12}}>
+                <div style={{
+                  width:18, height:18, borderRadius:50,
+                  border:'1px solid', borderColor: d.done ? 'var(--gold)' : 'var(--rule-bold)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  background: d.done ? 'var(--gold)' : 'transparent', color: 'var(--bg)'
+                }}>
+                  {d.done && React.cloneElement(I.check, {style:{width:11, height:11}})}
+                </div>
+                <span style={{fontFamily:'var(--display)', fontSize:14, fontWeight:500, color: d.done ? 'var(--ink)' : 'var(--ink2)'}}>{d.n}</span>
+              </div>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color: d.done ? 'var(--gold)' : 'var(--ink3)', letterSpacing:'0.12em'}}>{d.t}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Notes */}
+        <div style={{padding:'18px 22px'}}>
+          <div className="eyebrow" style={{marginBottom:10}}>FIELD NOTES</div>
+          <textarea placeholder="Reactions, observations, what you noticed…" style={{
+            width:'100%', minHeight:80, background:'transparent',
+            border:'none', borderTop:'1px solid var(--rule)', borderBottom:'1px solid var(--rule)',
+            color:'var(--ink2)', fontFamily:'var(--body)', fontSize:14, fontWeight:400, padding:'14px 0', resize:'none', outline:'none',
+            caretColor:'var(--gold)'
+          }}/>
+        </div>
+
+        <div style={{padding:'8px 22px 0'}}>
+          <button className="btn">
+            <span>Save check-in</span>
+            <span className="arrow">→</span>
+          </button>
+          <div style={{textAlign:'center', marginTop:14, fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.16em'}}>
+            +120 XP · STREAK PROTECTED
+          </div>
+        </div>
+        <div style={{height:24}}/>
+      </div>
+      <Tabs active="log"/>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   STACK — protocol detail
+   ════════════════════════════════════════════════════════════ */
+function Stack() {
+  return (
+    <div className="s">
+      <div className="statusbar"/>
+      <div className="scroll">
+        <div style={{padding:'12px 22px 18px'}}>
+          <div className="eyebrow"><span className="dot"/>YOUR PROTOCOL · GENERATED 03 JAN</div>
+          <div style={{fontFamily:'var(--display)', fontSize:36, fontWeight:700, letterSpacing:'-0.03em', lineHeight:0.95, marginTop:6}}>
+            The<br/><span style={{color:'var(--gold)'}}>texture stack</span>
+          </div>
+          <div style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink2)', lineHeight:1.5, marginTop:12, maxWidth:280}}>
+            Three peptides, tuned to your goals. Topical-only. Re-score every 6 weeks.
+          </div>
+        </div>
+        <div className="hr-bold"/>
+
+        {/* Big metrics row */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', borderBottom:'1px solid var(--rule)'}}>
+          {[
+            {k:'PEPTIDES', v:'03'},
+            {k:'WEEKS IN', v:'06'},
+            {k:'MATCH', v:'94%'},
+          ].map((m,i,a) => (
+            <div key={m.k} style={{padding:'18px 14px', borderRight: i<a.length-1 ? '1px solid var(--rule)' : 'none'}}>
+              <div className="eyebrow" style={{fontSize:9, marginBottom:8}}>{m.k}</div>
+              <div style={{fontFamily:'var(--display)', fontSize:32, fontWeight:600, letterSpacing:'-0.03em', lineHeight:1, color: i===2 ? 'var(--gold)' : 'var(--ink)'}}>{m.v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Stack items */}
+        {[
+          {n:'01', name:'Argireline', sub:'Acetyl Hexapeptide-8', dose:'0.5 mL', freq:'Daily AM', goal:'Texture', score:96},
+          {n:'02', name:'GHK-Cu', sub:'Copper Tripeptide-1', dose:'0.3 mL', freq:'Daily AM', goal:'Collagen', score:92},
+          {n:'03', name:'BPC-157', sub:'Body Protective Compound', dose:'0.5 mL', freq:'Daily PM', goal:'Barrier', score:88},
+        ].map((p, i) => (
+          <div key={p.n} style={{padding:'24px 22px', borderBottom:'1px solid var(--rule)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10}}>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink3)', letterSpacing:'0.16em'}}>N° {p.n}</span>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--gold)', letterSpacing:'0.1em', fontWeight:600}}>{p.score}% MATCH</span>
+            </div>
+            <div style={{fontFamily:'var(--display)', fontSize:26, fontWeight:700, letterSpacing:'-0.03em', lineHeight:1, marginBottom:4}}>{p.name}</div>
+            <div style={{fontFamily:'var(--body)', fontSize:13, color:'var(--ink3)', marginBottom:16, fontWeight:500, letterSpacing:'0.01em'}}>{p.sub}</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14}}>
+              {[
+                {k:'DOSE', v:p.dose},
+                {k:'FREQ', v:p.freq},
+                {k:'GOAL', v:p.goal},
+              ].map(c => (
+                <div key={c.k}>
+                  <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink3)', letterSpacing:'0.14em', marginBottom:4}}>{c.k}</div>
+                  <div style={{fontFamily:'var(--display)', fontSize:13, fontWeight:600, letterSpacing:'-0.01em'}}>{c.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div style={{padding:'24px 22px 0'}}>
+          <button className="btn">
+            <span>Re-take quiz</span>
+            <span className="arrow">↻</span>
+          </button>
+        </div>
+        <div style={{height:32}}/>
+      </div>
+      <Tabs active="stack"/>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+   APP
+   ════════════════════════════════════════════════════════════ */
+function App() {
+  const screens = [
+    {id:'home', label:'Home / Today', no:'01', comp: <Home/>},
+    {id:'stack', label:'Stack', no:'02', comp: <Stack/>},
+    {id:'scan', label:'Face Scan', no:'03', comp: <Scan/>},
+    {id:'progress', label:'Progress', no:'04', comp: <Progress/>},
+    {id:'log', label:'Daily Log', no:'05', comp: <Log/>},
+    {id:'lib', label:'Library', no:'06', comp: <Library/>},
+  ];
+
+  return (
+    <div className="stage">
+      {screens.map(s => (
+        <div key={s.id} className="phone-wrap">
+          <IOSDevice dark={true}>
+            {s.comp}
+          </IOSDevice>
+          <div className="phone-tag">
+            <span className="num">{s.no}</span>
+            <span>{s.label}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

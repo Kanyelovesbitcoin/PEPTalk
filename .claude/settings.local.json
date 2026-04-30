@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Luke/Downloads/**)",
+      "Bash(mv \"PEP Talk\" \"PEPTalk\")",
+      "Bash(npx tsc:*)",
+      "Bash(npx expo:*)",
+      "mcp__Claude_Preview__preview_start",
+      "WebFetch(domain:www.revenuecat.com)",
+      "Bash(npm install *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/peptalk-design)",
+      "Read(//tmp/**)",
+      "Bash(cp \"C:\\\\Users\\\\Luke\\\\.claude\\\\projects\\\\C--Users-Luke-Downloads-PEPTalk\\\\23509520-d4c7-489c-b3ec-003226b58a62\\\\tool-results\\\\webfetch-1777172638727-r7jcbe.bin\" design.gz)",
+      "Bash(gunzip -k design.gz)",
+      "Bash(tar -xf design)",
+      "Bash(xargs wc *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Skill(schedule)",
+      "Skill(schedule:*)"
+    ]
+  }
+}
