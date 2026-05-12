@@ -41,8 +41,8 @@ export function QuizOption({ description, isSelected, label, onPress, multiSelec
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1D1D1D',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 12,
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   selected: {
-    backgroundColor: '#102A1C',
+    backgroundColor: `${colors.accent}18`,
     borderColor: colors.accent,
     borderWidth: 1,
   },

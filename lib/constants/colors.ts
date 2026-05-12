@@ -1,6 +1,13 @@
 import type { GoalTag } from '@/types/compound';
 
 export const colors = {
+  black: '#0B0A08',
+  darkSurface: '#131210',
+  gold: '#D4A84B',
+  goldMuted: '#E8C97A',
+  white: '#EFE7D2',
+  error: '#E0623F',
+
   background: '#0B0A08',
   backgroundAlt: '#131210',
   surface: '#1A1611',
@@ -22,13 +29,13 @@ export const colors = {
   accentDim: '#8B6F2D',
   accentInk: '#0B0A08',
 
-  jade: '#A8C99A',
-  jadeDeep: '#6B9460',
-  jadeGlow: 'rgba(168, 201, 154, 0.25)',
+  jade: '#D4A84B',
+  jadeDeep: '#8B6F2D',
+  jadeGlow: 'rgba(212, 168, 75, 0.22)',
 
   amber: '#D4A84B',
   rose: '#E0623F',
-  success: '#A8C99A',
+  success: '#D4A84B',
   warning: '#D4A84B',
   danger: '#E0623F',
   crimson: '#E0623F',
@@ -40,10 +47,10 @@ export const colors = {
 
 // Longevity / looksmaxing goal palette — gold + jade family with subtle hue shifts.
 export const goalColors: Record<GoalTag, string> = {
-  recovery: '#A8C99A',
+  recovery: '#D4A84B',
   energy: '#D4A84B',
   sharpness: '#E8C97A',
-  vitality: '#A8C99A',
+  vitality: '#D4A84B',
   aesthetic: '#D4A84B',
-  sleep: '#8AA886',
+  sleep: '#8B6F2D',
 };

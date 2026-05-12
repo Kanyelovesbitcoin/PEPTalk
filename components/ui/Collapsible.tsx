@@ -48,9 +48,9 @@ export function Collapsible({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 10,
     overflow: 'hidden',
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   number: {
     ...t.sectionNum,
-    color: colors.textFaint,
+    color: colors.accent,
     fontSize: 10,
   },
   title: {

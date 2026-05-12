@@ -6,7 +6,6 @@ import { type as t } from '@/lib/constants/typography';
 import { compoundById } from '@/lib/data/compounds';
 import { protocolTemplates } from '@/lib/data/protocolTemplates';
 import { useTracker } from '@/lib/hooks/useTracker';
-import { formatDoseUnit } from '@/lib/utils/reconstitution';
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -18,8 +17,8 @@ export function ProtocolTemplates() {
   return (
     <View style={styles.panel}>
       <Text style={styles.kicker}>TEMPLATES</Text>
-      <Text style={styles.title}>Start from a safe scaffold.</Text>
-      <Text style={styles.copy}>Templates create editable tracking schedules with placeholder amounts. They are not dosing advice.</Text>
+      <Text style={styles.title}>Start a blank tracker.</Text>
+      <Text style={styles.copy}>Templates create editable personal tracking rows with no suggested amount. They are not instructions for use.</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {protocolTemplates.map((template) => {
@@ -31,7 +30,7 @@ export function ProtocolTemplates() {
               onPress={() =>
                 addSchedule({
                   active: true,
-                  amount: template.starterAmount,
+                  amount: 0,
                   compoundId: template.compoundId,
                   customDays: template.customDays,
                   frequency: template.frequency,
@@ -45,7 +44,7 @@ export function ProtocolTemplates() {
               style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
               <Text style={styles.goal}>{goal.shortTitle.toUpperCase()}</Text>
               <Text style={styles.cardTitle}>{template.title}</Text>
-              <Text style={styles.meta}>{compound?.name ?? 'Compound'} · {template.starterAmount}{formatDoseUnit(template.unit)} placeholder · {template.timeOfDay}</Text>
+              <Text style={styles.meta}>{compound?.name ?? 'Compound'} - amount not set - {template.timeOfDay}</Text>
               <Text style={styles.note}>{template.note}</Text>
             </Pressable>
           );

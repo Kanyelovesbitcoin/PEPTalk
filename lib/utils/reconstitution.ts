@@ -69,6 +69,6 @@ export function formatDoseUnit(unit: DoseUnit, amount?: number) {
 }
 
 export function formatDoseAmount(amount: number, unit: DoseUnit) {
-  if (!amount || amount <= 0) return 'Setup dose';
+  if (!amount || amount <= 0) return 'Set amount';
   return `${amount} ${formatDoseUnit(unit, amount)}`;
 }

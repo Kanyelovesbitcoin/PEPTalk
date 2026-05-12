@@ -17,19 +17,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/lib/constants/colors';
 import { fonts, type as t } from '@/lib/constants/typography';
 import { compoundById, compounds } from '@/lib/data/compounds';
+import { useAdaptiveLayout } from '@/lib/hooks/useAdaptiveLayout';
 import { useTracker } from '@/lib/hooks/useTracker';
+import { sanitizeDecimalInput } from '@/lib/utils/numberInput';
 import { formatDoseUnit } from '@/lib/utils/reconstitution';
 import type { DoseLog, DoseStatus, DoseUnit } from '@/types/tracker';
 
 const units: DoseUnit[] = ['mcg', 'mg'];
 
 const routeOptions = [
-  { label: 'Syringe', sub: 'Subcutaneous', value: 'syringe-subcutaneous' },
-  { label: 'Syringe', sub: 'Intramuscular', value: 'syringe-intramuscular' },
-  { label: 'Nasal Spray', sub: 'Intranasal', value: 'nasal-spray' },
-  { label: 'Oral', sub: 'Capsule / Liquid', value: 'oral' },
-  { label: 'Topical', sub: 'Cream / Gel', value: 'topical' },
-  { label: 'IV Drip', sub: 'Intravenous', value: 'iv-drip' },
+  { label: 'Non-oral route', sub: 'User-entered record', value: 'non-oral' },
+  { label: 'Nasal', sub: 'User-entered record', value: 'nasal' },
+  { label: 'Oral', sub: 'User-entered record', value: 'oral' },
+  { label: 'Topical', sub: 'Cosmetic record', value: 'topical' },
 ];
 
 const sideEffectOptions = [
@@ -52,10 +52,10 @@ const sideEffectOptions = [
 
 const feedbackOptions: { label: string; value: NonNullable<DoseLog['feedback']>; hint: string }[] = [
   { label: 'Nothing noticeable', value: 'nothing', hint: 'This is common early on. Baseline data is still useful.' },
-  { label: 'Felt better', value: 'better', hint: 'Great signal. Consider logging what improved so you can compare later.' },
-  { label: 'Too strong', value: 'too-strong', hint: 'A clear sign to reduce or space out your next dose.' },
+  { label: 'Felt better', value: 'better', hint: 'Useful personal signal. Log what changed so you can compare later.' },
+  { label: 'Too strong', value: 'too-strong', hint: 'Mark the entry clearly and discuss changes with a licensed clinician.' },
   { label: 'Side effects', value: 'side-effects', hint: 'Note which ones above. If they persist, pause and consult your clinician.' },
-  { label: 'Unsure', value: 'unsure', hint: 'That is okay. Keep the same protocol for now and reassess tomorrow.' },
+  { label: 'Unsure', value: 'unsure', hint: 'That is okay. Use the note field so future entries have more context.' },
 ];
 
 function nowParts() {
@@ -85,13 +85,31 @@ function buildScheduledAt(day: 'today' | 'yesterday' | 'custom', customDate: Dat
   return date.toISOString();
 }
 
-export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
+function newestLogForCompound(logs: DoseLog[], compoundId: string) {
+  return logs
+    .filter((log) => log.compoundId === compoundId)
+    .sort((left, right) => {
+      const leftTime = left.updatedAt ?? left.takenAt ?? left.createdAt;
+      const rightTime = right.updatedAt ?? right.takenAt ?? right.createdAt;
+      return rightTime.localeCompare(leftTime);
+    })[0] ?? null;
+}
+
+function routeValueForLog(value?: string) {
+  if (!value) return undefined;
+  if (routeOptions.some((option) => option.value === value)) return value;
+  if (value === 'injection') return 'non-oral';
+  return value;
+}
+
+export function DoseLogForm({ onClose, onSaved }: { onClose?: () => void; onSaved?: () => void }) {
+  const layout = useAdaptiveLayout();
   const { addDoseLog, doseLogs } = useTracker();
   const initialTime = useMemo(() => nowParts(), []);
   const [compoundId, setCompoundId] = useState('');
   const [compoundModalOpen, setCompoundModalOpen] = useState(false);
   const [compoundQuery, setCompoundQuery] = useState('');
-  const [amount, setAmount] = useState('250');
+  const [amount, setAmount] = useState('');
   const [unit, setUnit] = useState<DoseUnit>('mcg');
   const [route, setRoute] = useState(routeOptions[0].value);
   const [dateSegment, setDateSegment] = useState<'today' | 'yesterday' | 'custom'>('today');
@@ -139,15 +157,22 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
 
   useEffect(() => {
     if (!compoundId) return;
-    const lastLog = doseLogs.find((log) => log.compoundId === compoundId);
+    const lastLog = newestLogForCompound(doseLogs, compoundId);
     if (lastLog) {
       setAmount(String(lastLog.amount));
       setUnit(lastLog.unit);
-      if (lastLog.administrationRoute) setRoute(lastLog.administrationRoute);
+      setFeedback(lastLog.feedback);
+      setSideEffects(lastLog.sideEffects ?? []);
+      const nextRoute = routeValueForLog(lastLog.administrationRoute);
+      if (nextRoute) setRoute(nextRoute);
     }
   }, [compoundId, doseLogs]);
 
   const canSave = Boolean(compoundId && Number(amount) > 0);
+
+  function setAmountFromInput(value: string) {
+    setAmount(sanitizeDecimalInput(value));
+  }
 
   function selectCompound(id: string) {
     const compound = compoundById[id];
@@ -203,10 +228,21 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardWrap}>
-      <View style={styles.panel}>
+      <ScrollView
+        contentContainerStyle={styles.formScroll}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+      <View style={[styles.panel, layout.isTablet && styles.panelTablet]}>
         <View style={styles.formTopBar}>
-          <Text style={styles.backGlyph}>‹</Text>
-          <Text style={styles.formTitle}>LOG PROTOCOL</Text>
+          {onClose ? (
+            <Pressable accessibilityLabel="Close log entry" accessibilityRole="button" hitSlop={10} onPress={onClose} style={styles.formIconButton}>
+              <Ionicons color={colors.textMuted} name="chevron-down" size={22} />
+            </Pressable>
+          ) : (
+            <View style={styles.formIconButton} />
+          )}
+          <Text style={styles.formTitle}>LOG ENTRY</Text>
           <Ionicons color={colors.textDim} name="time-outline" size={22} />
         </View>
 
@@ -217,7 +253,7 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
           style={({ pressed }) => [styles.compoundCard, pressed && styles.pressed]}>
           <View>
             <Text style={styles.compoundName}>{selectedCompound?.name ?? 'Select compound'}</Text>
-            <Text style={styles.compoundMeta}>{selectedCompound?.nickname ?? 'Search legal peptides'}</Text>
+            <Text style={styles.compoundMeta}>{selectedCompound?.nickname ?? 'Search library references'}</Text>
           </View>
           <View style={styles.compoundActions}>
             <Ionicons color={colors.textDim} name="chevron-forward" size={18} />
@@ -225,21 +261,40 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
           </View>
         </Pressable>
 
-        <Text style={styles.label}>Dose</Text>
+        <Text style={styles.label}>Amount from your own record</Text>
         <View style={styles.doseBox}>
-          <TextInput keyboardType="decimal-pad" onChangeText={setAmount} style={styles.amountInput} value={amount} />
+          <TextInput
+            accessibilityLabel="Amount from your own record"
+            inputMode="decimal"
+            keyboardType="decimal-pad"
+            onChangeText={setAmountFromInput}
+            placeholder="0"
+            placeholderTextColor={colors.textFaint}
+            returnKeyType="done"
+            selectTextOnFocus
+            style={styles.amountInput}
+            value={amount}
+          />
           <View style={styles.unitRow}>
             {units.map((item) => (
-              <Pressable key={item} onPress={() => setUnit(item)} style={[styles.unitButton, unit === item && styles.unitButtonOn]}>
+              <Pressable
+                accessibilityLabel={`Use ${formatDoseUnit(item)} as unit`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: unit === item }}
+                key={item}
+                onPress={() => setUnit(item)}
+                style={[styles.unitButton, unit === item && styles.unitButtonOn]}>
                 <Text style={[styles.unitText, unit === item && styles.unitTextOn]}>{formatDoseUnit(item)}</Text>
               </Pressable>
             ))}
           </View>
         </View>
 
-        <Text style={styles.label}>Administration Route</Text>
+        <Text style={styles.label}>Route from your own record</Text>
         <Pressable
+          accessibilityLabel={showRouteControls ? 'Hide route controls' : 'Show route controls'}
           accessibilityRole="button"
+          accessibilityState={{ expanded: showRouteControls }}
           onPress={() => setShowRouteControls((value) => !value)}
           style={({ pressed }) => [styles.compactRow, pressed && styles.pressed]}>
           <View>
@@ -250,12 +305,18 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
         </Pressable>
         {showRouteControls ? (
           <View style={styles.routeGrid}>
-            {[0, 2, 4].map((start) => (
+            {[0, 2].map((start) => (
               <View key={start} style={styles.routeRow}>
                 {routeOptions.slice(start, start + 2).map((item) => {
                   const selected = route === item.value;
                   return (
-                    <Pressable key={item.value} onPress={() => setRoute(item.value)} style={[styles.routeCard, selected && styles.routeCardOn]}>
+                    <Pressable
+                      accessibilityLabel={`Use route ${item.label}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      key={item.value}
+                      onPress={() => setRoute(item.value)}
+                      style={[styles.routeCard, selected && styles.routeCardOn]}>
                       <Text style={[styles.routeTitle, selected && styles.routeTitleOn]}>{item.label}</Text>
                       <Text style={[styles.routeSub, selected && styles.routeSubOn]}>{item.sub}</Text>
                     </Pressable>
@@ -267,13 +328,15 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
         ) : null}
 
         <Pressable
+          accessibilityLabel={showTimeControls ? 'Hide timestamp controls' : 'Edit timestamp'}
           accessibilityRole="button"
+          accessibilityState={{ expanded: showTimeControls }}
           onPress={() => setShowTimeControls((value) => !value)}
           style={({ pressed }) => [styles.timeSummary, pressed && styles.pressed]}>
           <View>
             <Text style={styles.labelInline}>Timestamp</Text>
             <Text style={styles.compactMeta}>
-              {dateSegment === 'today' ? 'Now' : dateSegment === 'yesterday' ? 'Yesterday' : formatDateLabel(customDate)} · {hour}:{minute} {period}
+              {dateSegment === 'today' ? 'Now' : dateSegment === 'yesterday' ? 'Yesterday' : formatDateLabel(customDate)} - {hour}:{minute} {period}
             </Text>
           </View>
           <Text style={styles.textAction}>{showTimeControls ? 'Done' : 'Edit time'}</Text>
@@ -291,25 +354,25 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
 
             <View style={styles.timePanel}>
               <View style={styles.timeBlock}>
-                <Pressable onPress={() => adjustHour(-1)} style={styles.timeStepper}>
+                <Pressable accessibilityLabel="Decrease hour" accessibilityRole="button" onPress={() => adjustHour(-1)} style={styles.timeStepper}>
                   <Ionicons color={colors.textMuted} name="remove" size={18} />
                 </Pressable>
                 <Text style={styles.timeValue}>{hour}</Text>
-                <Pressable onPress={() => adjustHour(1)} style={styles.timeStepper}>
+                <Pressable accessibilityLabel="Increase hour" accessibilityRole="button" onPress={() => adjustHour(1)} style={styles.timeStepper}>
                   <Ionicons color={colors.textMuted} name="add" size={18} />
                 </Pressable>
               </View>
               <Text style={styles.timeColon}>:</Text>
               <View style={styles.timeBlock}>
-                <Pressable onPress={() => adjustMinute(-1)} style={styles.timeStepper}>
+                <Pressable accessibilityLabel="Decrease minute" accessibilityRole="button" onPress={() => adjustMinute(-1)} style={styles.timeStepper}>
                   <Ionicons color={colors.textMuted} name="remove" size={18} />
                 </Pressable>
                 <Text style={styles.timeValue}>{minute}</Text>
-                <Pressable onPress={() => adjustMinute(1)} style={styles.timeStepper}>
+                <Pressable accessibilityLabel="Increase minute" accessibilityRole="button" onPress={() => adjustMinute(1)} style={styles.timeStepper}>
                   <Ionicons color={colors.textMuted} name="add" size={18} />
                 </Pressable>
               </View>
-              <Pressable onPress={() => setPeriod((p) => (p === 'AM' ? 'PM' : 'AM'))} style={styles.periodToggle}>
+              <Pressable accessibilityLabel={`Switch to ${period === 'AM' ? 'PM' : 'AM'}`} accessibilityRole="button" onPress={() => setPeriod((p) => (p === 'AM' ? 'PM' : 'AM'))} style={styles.periodToggle}>
                 <Text style={styles.periodText}>{period}</Text>
               </Pressable>
             </View>
@@ -318,21 +381,28 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
 
         <Text style={styles.label}>Notes</Text>
         <TextInput
+          accessibilityLabel="Notes"
           multiline
           onChangeText={setNotes}
-          placeholder="Observations, how you feel, any side effects..."
+          placeholder="Observations, context, or follow-up questions..."
           placeholderTextColor={colors.textFaint}
           style={[styles.input, styles.notes]}
           textAlignVertical="top"
           value={notes}
         />
 
-        <Text style={styles.label}>How did it feel?</Text>
+        <Text style={styles.label}>Personal note</Text>
         <View style={styles.feedbackWrap}>
           {feedbackOptions.map((item) => {
             const selected = feedback === item.value;
             return (
-              <Pressable key={item.value} onPress={() => setFeedback(item.value)} style={[styles.feedbackChip, selected && styles.feedbackChipOn]}>
+              <Pressable
+                accessibilityLabel={`Set personal note to ${item.label}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={item.value}
+                onPress={() => setFeedback(item.value)}
+                style={[styles.feedbackChip, selected && styles.feedbackChipOn]}>
                 <Text style={[styles.feedbackText, selected && styles.feedbackTextOn]}>{item.label}</Text>
               </Pressable>
             );
@@ -344,11 +414,12 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
           </View>
         ) : null}
 
-        <Text style={styles.label}>Side Effects <Text style={styles.optional}>(Optional)</Text></Text>
+        <Text style={styles.label}>Observations <Text style={styles.optional}>(Optional)</Text></Text>
         <TextInput
+          accessibilityLabel="Search or add an observation"
           autoCapitalize="sentences"
           onChangeText={setSideEffectQuery}
-          placeholder="Search or add a symptom"
+          placeholder="Search or add an observation"
           placeholderTextColor={colors.textFaint}
           style={styles.tagInput}
           value={sideEffectQuery}
@@ -356,8 +427,8 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
         {sideEffects.length > 0 ? (
           <View style={styles.sideEffectWrap}>
             {sideEffects.map((effect) => (
-              <Pressable key={effect} onPress={() => toggleSideEffect(effect)} style={[styles.sideEffectChip, styles.sideEffectChipOn]}>
-                <Text style={[styles.sideEffectText, styles.sideEffectTextOn]}>{effect} ×</Text>
+              <Pressable accessibilityLabel={`Remove observation ${effect}`} accessibilityRole="button" accessibilityState={{ selected: true }} key={effect} onPress={() => toggleSideEffect(effect)} style={[styles.sideEffectChip, styles.sideEffectChipOn]}>
+                <Text style={[styles.sideEffectText, styles.sideEffectTextOn]}>{effect} x</Text>
               </Pressable>
             ))}
           </View>
@@ -366,23 +437,30 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
           {sideEffectResults.map((effect) => {
             const selected = sideEffects.includes(effect);
             return (
-              <Pressable key={effect} onPress={() => toggleSideEffect(effect)} style={[styles.sideEffectChip, selected && styles.sideEffectChipOn]}>
+              <Pressable
+                accessibilityLabel={`${selected ? 'Remove' : 'Add'} observation ${effect}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={effect}
+                onPress={() => toggleSideEffect(effect)}
+                style={[styles.sideEffectChip, selected && styles.sideEffectChipOn]}>
                 <Text style={[styles.sideEffectText, selected && styles.sideEffectTextOn]}>{effect}</Text>
               </Pressable>
             );
           })}
           {sideEffectQuery.trim() && !sideEffectOptions.some((effect) => effect.toLowerCase() === sideEffectQuery.trim().toLowerCase()) ? (
-            <Pressable onPress={() => toggleSideEffect(sideEffectQuery.trim())} style={styles.sideEffectChip}>
+            <Pressable accessibilityLabel={`Add observation ${sideEffectQuery.trim()}`} accessibilityRole="button" onPress={() => toggleSideEffect(sideEffectQuery.trim())} style={styles.sideEffectChip}>
               <Text style={styles.sideEffectText}>Add "{sideEffectQuery.trim()}"</Text>
             </Pressable>
           ) : null}
         </View>
 
-        <Pressable disabled={!canSave} onPress={saveDose} style={({ pressed }) => [styles.logButton, !canSave && styles.logButtonDisabled, pressed && styles.pressed]}>
-          <Text style={styles.logButtonText}>Log Dose</Text>
+        <Pressable accessibilityLabel="Save log entry" accessibilityRole="button" accessibilityState={{ disabled: !canSave }} disabled={!canSave} onPress={saveDose} style={({ pressed }) => [styles.logButton, !canSave && styles.logButtonDisabled, pressed && styles.pressed]}>
+          <Text style={styles.logButtonText}>Save Log Entry</Text>
         </Pressable>
-        <Text style={styles.streakText}>♧ 1 day streak</Text>
       </View>
+
+      </ScrollView>
 
       <CompoundPickerModal
         query={compoundQuery}
@@ -399,7 +477,12 @@ export function DoseLogForm({ onSaved }: { onSaved?: () => void }) {
 
 function DateButton({ label, active, wide, onPress }: { label: string; active: boolean; wide?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.dateButton, wide && styles.dateButtonWide, active && styles.dateButtonOn]}>
+    <Pressable
+      accessibilityLabel={`Set date to ${label}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.dateButton, wide && styles.dateButtonWide, active && styles.dateButtonOn]}>
       <Text style={[styles.dateButtonText, active && styles.dateButtonTextOn]}>{label}</Text>
     </Pressable>
   );
@@ -426,18 +509,19 @@ function CompoundPickerModal({
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen" visible={visible}>
       <SafeAreaView style={styles.modalSafe}>
         <View style={styles.modalHeader}>
-          <Pressable accessibilityLabel="Close compound search" onPress={onClose} style={styles.modalIconButton}>
+          <Pressable accessibilityLabel="Close compound search" accessibilityRole="button" onPress={onClose} style={styles.modalIconButton}>
             <Ionicons color={colors.text} name="chevron-back" size={22} />
           </Pressable>
           <Text style={styles.modalTitle}>Choose Compound</Text>
           <View style={styles.modalIconButton} />
         </View>
         <TextInput
+          accessibilityLabel="Search compounds"
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus
           onChangeText={onChangeQuery}
-          placeholder="Search peptides"
+          placeholder="Search library"
           placeholderTextColor={colors.textFaint}
           style={styles.modalSearch}
           value={query}
@@ -446,7 +530,13 @@ function CompoundPickerModal({
           {results.length > 0 ? results.map((item) => {
             const selected = item.id === selectedId;
             return (
-              <Pressable key={item.id} onPress={() => onSelect(item.id)} style={[styles.modalRow, selected && styles.modalRowOn]}>
+              <Pressable
+                accessibilityLabel={`Select ${item.name}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={item.id}
+                onPress={() => onSelect(item.id)}
+                style={[styles.modalRow, selected && styles.modalRowOn]}>
                 <View style={styles.modalRowTextWrap}>
                   <Text style={[styles.modalRowTitle, selected && styles.modalRowTitleOn]}>{item.name}</Text>
                   <Text style={[styles.modalRowSub, selected && styles.modalRowSubOn]} numberOfLines={1}>{item.nickname ?? item.summary}</Text>
@@ -468,12 +558,17 @@ function CompoundPickerModal({
 const styles = StyleSheet.create({
   keyboardWrap: { flex: 1 },
   panel: {
+    alignSelf: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderStrong,
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 18,
     padding: 16,
+    width: '100%',
+  },
+  panelTablet: {
+    maxWidth: 640,
   },
   formTopBar: {
     alignItems: 'center',
@@ -481,7 +576,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 18,
   },
-  backGlyph: { color: colors.textMuted, fontSize: 28, lineHeight: 28 },
+  formIconButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  formScroll: { paddingBottom: 16 },
   formTitle: { ...t.eyebrow, color: colors.textMuted, letterSpacing: 1.8 },
   compoundCard: {
     alignItems: 'center',
@@ -606,9 +702,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    height: 40,
+    height: 44,
     justifyContent: 'center',
-    width: 52,
+    width: 54,
   },
   timeValue: {
     color: colors.text,
@@ -649,6 +745,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 44,
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
@@ -683,6 +780,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 44,
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
@@ -692,7 +790,6 @@ const styles = StyleSheet.create({
   logButton: { backgroundColor: colors.accent, borderRadius: 13, paddingVertical: 18, shadowColor: colors.accent, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.22, shadowRadius: 18 },
   logButtonDisabled: { opacity: 0.45 },
   logButtonText: { color: colors.accentInk, fontFamily: fonts.sansMedium, fontSize: 16, textAlign: 'center' },
-  streakText: { color: colors.accent, fontFamily: fonts.sansMedium, fontSize: 14, marginTop: 14, textAlign: 'center' },
   modalSafe: { backgroundColor: colors.background, flex: 1, paddingHorizontal: 18, paddingTop: 18 },
   modalHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   modalIconButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },

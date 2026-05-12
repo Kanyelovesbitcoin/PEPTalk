@@ -3,8 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 
 import { colors } from '@/lib/constants/colors';
 import { type as t } from '@/lib/constants/typography';
+import { useFeatureAccess } from '@/lib/hooks/useFeatureAccess';
+import { usePro } from '@/lib/hooks/usePro';
 import { compounds } from '@/lib/data/compounds';
 import { useTracker } from '@/lib/hooks/useTracker';
+import { showPaywallWithAlert } from '@/lib/utils/paywallAlerts';
 import { formatDoseUnit } from '@/lib/utils/reconstitution';
 import { formatShortDateTime, getNextScheduledDose } from '@/lib/utils/trackerDates';
 import type { DoseUnit, ScheduleFrequency } from '@/types/tracker';
@@ -23,15 +26,17 @@ function todayKey() {
 
 export function ScheduleBuilder() {
   const { addSchedule, deleteSchedule, schedules, toggleSchedule } = useTracker();
+  const { isPro, showPaywall } = usePro();
+  const reminderAccess = useFeatureAccess('privateReminders');
   const [compoundId, setCompoundId] = useState(compounds[0]?.id ?? '');
-  const [amount, setAmount] = useState('250');
+  const [amount, setAmount] = useState('');
   const [unit, setUnit] = useState<DoseUnit>('mcg');
   const [frequency, setFrequency] = useState<ScheduleFrequency>('daily');
-  const [customDays, setCustomDays] = useState<number[]>([1, 3, 5]);
+  const [customDays, setCustomDays] = useState<number[]>([]);
   const [timeOfDay, setTimeOfDay] = useState('09:00');
   const [startDate, setStartDate] = useState(todayKey());
-  const [injectionSite, setInjectionSite] = useState('Abdomen');
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [injectionSite, setInjectionSite] = useState('');
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
 
   function saveSchedule() {
     if (!compoundId || Number(amount) <= 0) {
@@ -45,7 +50,7 @@ export function ScheduleBuilder() {
       customDays: frequency === 'custom-days' ? customDays : undefined,
       frequency,
       injectionSite: injectionSite.trim() || undefined,
-      remindersEnabled,
+      remindersEnabled: isPro && remindersEnabled,
       startDate,
       timeOfDay,
       unit,
@@ -60,8 +65,8 @@ export function ScheduleBuilder() {
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.kicker}>SCHEDULE</Text>
-      <Text style={styles.title}>Make it repeatable.</Text>
+      <Text style={styles.kicker}>TRACKER</Text>
+      <Text style={styles.title}>Build a personal reminder.</Text>
 
       <Text style={styles.label}>Compound</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller}>
@@ -77,8 +82,8 @@ export function ScheduleBuilder() {
 
       <View style={styles.row}>
         <View style={styles.flexField}>
-          <Text style={styles.label}>Amount</Text>
-          <TextInput keyboardType="decimal-pad" onChangeText={setAmount} style={styles.input} value={amount} />
+          <Text style={styles.label}>Amount from your own record</Text>
+          <TextInput keyboardType="decimal-pad" onChangeText={setAmount} placeholder="Enter amount" placeholderTextColor={colors.textFaint} style={styles.input} value={amount} />
         </View>
         <View style={styles.flexField}>
           <Text style={styles.label}>Unit</Text>
@@ -122,26 +127,39 @@ export function ScheduleBuilder() {
         </View>
       </View>
 
-      <Text style={styles.label}>Site default</Text>
-      <TextInput onChangeText={setInjectionSite} placeholder="Abdomen, thigh, glute..." placeholderTextColor={colors.textFaint} style={styles.input} value={injectionSite} />
+      <Text style={styles.label}>Site note</Text>
+      <TextInput onChangeText={setInjectionSite} placeholder="Optional private note" placeholderTextColor={colors.textFaint} style={styles.input} value={injectionSite} />
 
-      <Pressable onPress={() => setRemindersEnabled((value) => !value)} style={({ pressed }) => [styles.reminderBox, remindersEnabled && styles.reminderBoxOn, pressed && styles.pressed]}>
+      <Pressable
+        onPress={async () => {
+          if (!isPro) {
+            setRemindersEnabled(false);
+            await showPaywallWithAlert(showPaywall);
+            return;
+          }
+          setRemindersEnabled((value) => !value);
+        }}
+        style={({ pressed }) => [styles.reminderBox, remindersEnabled && styles.reminderBoxOn, !isPro && styles.reminderBoxLocked, pressed && styles.pressed]}>
         <View style={styles.reminderTextWrap}>
-          <Text style={[styles.reminderTitle, remindersEnabled && styles.reminderTitleOn]}>Private reminder</Text>
+          <Text style={[styles.reminderTitle, remindersEnabled && styles.reminderTitleOn]}>
+            {isPro ? reminderAccess.title : 'Pro private reminder'}
+          </Text>
           <Text style={[styles.reminderCopy, remindersEnabled && styles.reminderCopyOn]}>
-            Generic lock-screen prompt. No compound name or dose shown.
+            {isPro
+              ? 'Generic lock-screen prompt. No compound name or amount shown.'
+              : 'Free trackers stay local. Pro adds discreet lock-screen accountability.'}
           </Text>
         </View>
-        <Text style={[styles.reminderState, remindersEnabled && styles.reminderStateOn]}>{remindersEnabled ? 'ON' : 'OFF'}</Text>
+        <Text style={[styles.reminderState, remindersEnabled && styles.reminderStateOn]}>{isPro ? (remindersEnabled ? 'ON' : 'OFF') : 'PRO'}</Text>
       </Pressable>
 
       <Pressable onPress={saveSchedule} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-        <Text style={styles.buttonText}>Save schedule</Text>
+        <Text style={styles.buttonText}>Save tracker</Text>
       </Pressable>
 
       {schedules.length > 0 ? (
         <View style={styles.savedWrap}>
-          <Text style={styles.savedTitle}>Active protocols</Text>
+          <Text style={styles.savedTitle}>Active trackers</Text>
           {schedules.slice(0, 4).map((schedule) => {
             const compound = compounds.find((item) => item.id === schedule.compoundId);
             const preview = getNextScheduledDose(schedule);
@@ -196,6 +214,7 @@ const styles = StyleSheet.create({
   button: { backgroundColor: colors.accent, borderRadius: 13, marginTop: 18, paddingVertical: 14 },
   buttonText: { ...t.label, color: colors.accentInk, textAlign: 'center' },
   reminderBox: { alignItems: 'center', backgroundColor: colors.backgroundAlt, borderColor: colors.borderStrong, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, justifyContent: 'space-between', marginTop: 16, padding: 14 },
+  reminderBoxLocked: { borderColor: `${colors.accent}33` },
   reminderBoxOn: { borderColor: `${colors.accent}77` },
   reminderTextWrap: { flex: 1 },
   reminderTitle: { ...t.label, color: colors.text, fontSize: 13, marginBottom: 4 },

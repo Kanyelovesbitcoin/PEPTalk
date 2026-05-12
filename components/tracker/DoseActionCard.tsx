@@ -30,7 +30,7 @@ export function DoseActionCard({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.kicker}>TODAY'S PROTOCOL</Text>
+        <Text style={styles.kicker}>TODAY'S TRACKER</Text>
         <View style={styles.statusPill}>
           <Text style={styles.statusText}>{todayTakenCount} taken</Text>
           {todaySkippedCount > 0 ? <Text style={styles.statusText}> · {todaySkippedCount} skipped</Text> : null}
@@ -49,22 +49,22 @@ export function DoseActionCard({
           <View style={styles.buttonRow}>
             <Pressable onPress={onLogTaken} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
               <Ionicons color={colors.accentInk} name="checkmark" size={17} />
-              <Text style={styles.primaryText}>Log taken</Text>
+              <Text style={styles.primaryText}>Log entry</Text>
             </Pressable>
             <Pressable onPress={onLogSkipped} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-              <Text style={styles.secondaryText}>Skip</Text>
+            <Text style={styles.secondaryText}>Skip today</Text>
             </Pressable>
           </View>
         </>
       ) : (
         <>
-          <Text style={styles.title}>No active schedule yet.</Text>
+          <Text style={styles.title}>No active tracker yet.</Text>
           <Text style={styles.copy}>
-            Create one protocol and GlowPep becomes useful every day: next dose, one-tap logging, and dose history.
+            Create one personal tracker and GlowPep becomes useful every day: next entry, one-tap logging, and history.
           </Text>
           <Pressable onPress={onCreateSchedule} style={({ pressed }) => [styles.primaryButton, styles.singleButton, pressed && styles.pressed]}>
             <Ionicons color={colors.accentInk} name="calendar-outline" size={17} />
-            <Text style={styles.primaryText}>Build first schedule</Text>
+            <Text style={styles.primaryText}>Build first tracker</Text>
           </Pressable>
         </>
       )}

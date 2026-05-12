@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { colors } from '@/lib/constants/colors';
 import { fonts, type as t } from '@/lib/constants/typography';
+import { hapticLight } from '@/lib/utils/haptics';
 import { fetchCompoundExplanation, type CompoundExplanation } from '@/lib/utils/aiInsights';
 import type { Compound } from '@/types/compound';
 import type { CompoundInsight, QuizAnswers, StackMatch } from '@/types/quiz';
@@ -19,9 +20,9 @@ interface StackResultCardProps {
 }
 
 const tierLabel: Record<StackMatch['tier'], string> = {
-  primary: '§ 01 — PRIMARY',
-  secondary: '§ 02 — SECONDARY',
-  supporting: '§ 03 — SUPPORTING',
+  primary: '01 - Primary reference',
+  secondary: '02 - Context reference',
+  supporting: '03 - Supporting reference',
 };
 
 export function StackResultCard({
@@ -38,6 +39,7 @@ export function StackResultCard({
   const [showExplain, setShowExplain] = useState(false);
 
   async function handleExplain() {
+    hapticLight();
     if (explanation) {
       setShowExplain(!showExplain);
       return;
@@ -64,7 +66,11 @@ export function StackResultCard({
         <Text style={styles.classLabel}>{compound.type.toUpperCase()}</Text>
       </View>
 
-      <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+      <Pressable
+        accessibilityLabel={`Open dossier for ${compound.name}`}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [pressed && styles.pressed]}>
         <Text style={styles.name}>{compound.name}</Text>
         {compound.nickname ? <Text style={styles.alt}>{compound.nickname}</Text> : null}
         <Text style={styles.summary}>{compound.summary}</Text>
@@ -75,7 +81,7 @@ export function StackResultCard({
         <View style={styles.divided}>
           <View style={styles.loadingRow}>
             <ActivityIndicator color={colors.accent} size="small" />
-            <Text style={styles.loadingText}>Generating personalized insights…</Text>
+            <Text style={styles.loadingText}>Generating educational context...</Text>
           </View>
         </View>
       ) : null}
@@ -86,7 +92,7 @@ export function StackResultCard({
           <Text style={styles.insightBody}>{insight.personalReasoning}</Text>
           {insight.benefits.map((benefit) => (
             <View key={benefit} style={styles.bulletRow}>
-              <Text style={styles.bulletGlyph}>—</Text>
+              <Text style={styles.bulletGlyph}>-</Text>
               <Text style={styles.bulletText}>{benefit}</Text>
             </View>
           ))}
@@ -99,6 +105,9 @@ export function StackResultCard({
       {quizAnswers && allMatches ? (
         <View style={styles.divided}>
           <Pressable
+            accessibilityLabel={showExplain && explanation ? `Hide deep dive for ${compound.name}` : `Explain ${compound.name}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: explainLoading, expanded: showExplain }}
             disabled={explainLoading}
             onPress={handleExplain}
             style={({ pressed }) => [styles.explainBtn, pressed && styles.pressed]}>
@@ -120,7 +129,7 @@ export function StackResultCard({
             <View style={styles.explainContent}>
               <Text style={styles.explainBody}>{explanation.explanation}</Text>
 
-              <Text style={styles.kicker}>PRACTICAL TIPS</Text>
+              <Text style={styles.kicker}>TRACKING NOTES</Text>
               {explanation.practicalTips.map((tip) => (
                 <View key={tip} style={styles.bulletRow}>
                   <Text style={styles.bulletGlyph}>+</Text>
@@ -145,8 +154,8 @@ export function StackResultCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1D1D1D',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 14,
@@ -193,7 +202,7 @@ const styles = StyleSheet.create({
   },
 
   divided: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.background,
     borderRadius: 14,
     marginTop: 16,
     padding: 14,
@@ -252,6 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+    minHeight: 44,
   },
   explainText: {
     ...t.label,

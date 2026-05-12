@@ -17,7 +17,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Recovery',
     icon: 'pulse',
     accent: goalColors.recovery,
-    description: 'Repair faster',
+    description: 'Recovery research',
   },
   {
     id: 'energy',
@@ -25,7 +25,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Energy',
     icon: 'flash',
     accent: goalColors.energy,
-    description: 'Sustained drive',
+    description: 'Energy context',
   },
   {
     id: 'sharpness',
@@ -33,7 +33,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Focus',
     icon: 'compass',
     accent: goalColors.sharpness,
-    description: 'Clearer attention',
+    description: 'Focus research',
   },
   {
     id: 'vitality',
@@ -41,7 +41,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Vitality',
     icon: 'leaf',
     accent: goalColors.vitality,
-    description: 'Cellular renewal',
+    description: 'Vitality context',
   },
   {
     id: 'aesthetic',
@@ -49,7 +49,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Aesthetic',
     icon: 'sparkles',
     accent: goalColors.aesthetic,
-    description: 'Visible glow-up',
+    description: 'Cosmetic context',
   },
   {
     id: 'sleep',
@@ -57,7 +57,7 @@ export const goals: GoalDefinition[] = [
     shortTitle: 'Sleep',
     icon: 'moon',
     accent: goalColors.sleep,
-    description: 'Deep recovery',
+    description: 'Sleep context',
   },
 ];
 

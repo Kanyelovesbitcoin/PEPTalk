@@ -15,8 +15,13 @@ export const STORAGE_KEYS = {
   freeAiStackUsed: 'glowpep/free-ai-stack-used',
   aiPrivacyAccepted: 'glowpep/ai-privacy-accepted',
   symptomLogs: 'glowpep/symptom-logs:v1',
-  skinScans: 'glowpep/skin-scans',
+  onboardingPreferences: 'glowpep/onboarding-preferences:v1',
+  onboardingProfile: 'glowpep/onboarding-profile:v1',
+  onboardingEnergy: 'glowpep/onboarding-energy',
   cosmeticDisclaimer: 'glowpep/cosmetic-disclaimer',
+  freeModeNotice: 'glowpep/free-mode-notice',
+  revenueCatAppUserId: 'glowpep/revenuecat-app-user-id',
+  skinQuizResult: 'glowpep/skin-quiz-result:v1',
   legacyMigrated: 'glowpep/legacy-migrated:v1',
 } as const;
 

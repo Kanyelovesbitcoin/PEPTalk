@@ -37,10 +37,10 @@ export default function FavoritesScreen() {
         ListEmptyComponent={
           <>
             <EmptyState
-              copy="Take the AI quiz and save a routine to see it here."
-              cta={{ label: 'Take the quiz', onPress: () => router.push('/quiz') }}
+              copy="Take the Glowmax guide and save items to see it here."
+              cta={{ label: 'Take the guide', onPress: () => router.push('/quiz') }}
               icon="bookmark-outline"
-              kicker="No saved routines"
+              kicker="Nothing saved"
               title="Your archive is empty."
             />
             <View style={styles.notesCard}>
@@ -61,7 +61,7 @@ export default function FavoritesScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Logbook</Text>
             <Text style={styles.sub}>
-              Open any past result to revisit the logic and recommended compounds.
+              Open any past Glowmax result to revisit the educational logic and related references.
             </Text>
           </View>
         }
@@ -87,7 +87,7 @@ export default function FavoritesScreen() {
                 <Text style={styles.arrow}>→</Text>
               </View>
               <Text style={styles.cardTitle}>
-                {primary ? `${primary.name} stack` : 'Saved stack'}
+                {primary ? `${primary.name} Saved` : 'Saved'}
               </Text>
               <View style={styles.divider} />
               <Text style={styles.cardCopy}>

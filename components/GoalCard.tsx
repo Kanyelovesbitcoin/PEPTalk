@@ -13,6 +13,8 @@ interface GoalCardProps {
 export function GoalCard({ goal, onPress }: Readonly<GoalCardProps>) {
   return (
     <Pressable
+      accessibilityLabel={`Explore ${goal.title}. ${goal.description}`}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
       <View style={styles.iconWrap}>
@@ -24,7 +26,7 @@ export function GoalCard({ goal, onPress }: Readonly<GoalCardProps>) {
       </Text>
       <View style={styles.footer}>
         <Text style={styles.linkText}>Explore</Text>
-        <Text style={styles.arrow}>→</Text>
+        <Text style={styles.arrow}>-&gt;</Text>
       </View>
     </Pressable>
   );

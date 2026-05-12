@@ -14,8 +14,8 @@ export function Disclaimer({ expanded = false }: DisclaimerProps) {
         {expanded ? '§ — DISCLAIMER' : 'EDUCATION ONLY'}
       </Text>
       <Text style={styles.text}>
-        GlowPep is for education only. This is not medical advice. Always consult a
-        healthcare provider before starting any supplement or peptide.
+        GlowPep is for education and private tracking only. This is not medical advice,
+        product guidance, dosing guidance, or a recommendation to use any peptide.
       </Text>
     </View>
   );

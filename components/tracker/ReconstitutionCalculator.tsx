@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { CornerBrackets } from '@/components/ui/CornerBrackets';
+import { TickRow } from '@/components/ui/TickRow';
 import { colors } from '@/lib/constants/colors';
 import { type as t } from '@/lib/constants/typography';
 import { compounds } from '@/lib/data/compounds';
@@ -24,7 +26,7 @@ export function ReconstitutionCalculator() {
   const [vialAmount, setVialAmount] = useState('5');
   const [vialUnit, setVialUnit] = useState<MeasuredDoseUnit>('mg');
   const [bacWaterMl, setBacWaterMl] = useState('2');
-  const [targetDose, setTargetDose] = useState('250');
+  const [targetDose, setTargetDose] = useState('');
   const [targetDoseUnit, setTargetDoseUnit] = useState<MeasuredDoseUnit>('mcg');
   const [notes, setNotes] = useState('');
 
@@ -63,9 +65,17 @@ export function ReconstitutionCalculator() {
 
   return (
     <View style={styles.panel}>
-      <Text style={styles.kicker}>RECONSTITUTION</Text>
-      <Text style={styles.title}>Calculate before you draw.</Text>
-      <Text style={styles.copy}>U-100 syringe math: 1 mL = 100 units.</Text>
+      <Text style={styles.kicker}>REFERENCE CALCULATOR</Text>
+      <Text style={styles.title}>User-entered math reference.</Text>
+      <Text style={styles.copy}>Educational arithmetic utility only. Use values from your own records or clinician; GlowPep does not choose products, routes, or amounts.</Text>
+
+      <View style={styles.stepRow}>
+        {['REFERENCE', 'INPUTS', 'OUTPUT'].map((label, index) => (
+          <View key={label} style={[styles.stepPill, index === 0 && styles.stepPillDone, index === 1 && styles.stepPillActive]}>
+            <Text style={[styles.stepText, (index === 0 || index === 1) && styles.stepTextOn]}>{label}</Text>
+          </View>
+        ))}
+      </View>
 
       <Text style={styles.label}>Compound</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller}>
@@ -95,7 +105,7 @@ export function ReconstitutionCalculator() {
 
       <View style={styles.row}>
         <View style={styles.flexField}>
-          <Text style={styles.label}>Target dose</Text>
+          <Text style={styles.label}>Amount from your own record</Text>
           <TextInput keyboardType="decimal-pad" onChangeText={setTargetDose} style={styles.input} value={targetDose} />
         </View>
         <View style={styles.flexField}>
@@ -105,10 +115,14 @@ export function ReconstitutionCalculator() {
       </View>
 
       <View style={styles.resultBox}>
+        <CornerBrackets armLength={14} opacity={0.55} />
         {result ? (
           <>
-            <Text style={styles.resultKicker}>DRAW THIS</Text>
+            <Text style={styles.resultKicker}>REFERENCE OUTPUT</Text>
             <Text style={styles.resultMain}>{fixed(result.outputUnits, 1)} units</Text>
+            <View style={styles.resultTicks}>
+              <TickRow />
+            </View>
             <Text style={styles.resultSub}>{fixed(result.outputMl, 3)} mL · {fixed(result.concentrationPerMl, 1)} {formatDoseUnit(targetDoseUnit)}/mL equivalent</Text>
           </>
         ) : (
@@ -117,11 +131,12 @@ export function ReconstitutionCalculator() {
       </View>
 
       <Text style={styles.label}>Recipe notes</Text>
-      <TextInput onChangeText={setNotes} placeholder="Batch, source, storage, reminder..." placeholderTextColor={colors.textFaint} style={styles.input} value={notes} />
+      <TextInput onChangeText={setNotes} placeholder="Label, storage, reminder..." placeholderTextColor={colors.textFaint} style={styles.input} value={notes} />
 
       <Pressable disabled={!result} onPress={saveRecipe} style={({ pressed }) => [styles.button, !result && styles.buttonDisabled, pressed && styles.pressed]}>
         <Text style={styles.buttonText}>Save vial recipe</Text>
       </Pressable>
+      <Text style={styles.disclaimer}>Calculation only. Not dosing, administration, product, or medical guidance. Verify independently with a licensed professional.</Text>
 
       {vialRecipes.length > 0 ? (
         <View style={styles.savedWrap}>
@@ -158,6 +173,22 @@ const styles = StyleSheet.create({
   kicker: { ...t.eyebrow, color: colors.accent, marginBottom: 8 },
   title: { ...t.displaySmall, color: colors.text, fontSize: 23, lineHeight: 27, marginBottom: 6 },
   copy: { ...t.bodySmall, color: colors.textMuted, marginBottom: 12 },
+  stepRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  stepPill: {
+    alignItems: 'center',
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flex: 1,
+    minHeight: 32,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  stepPillActive: { borderColor: colors.accent },
+  stepPillDone: { backgroundColor: `${colors.accent}1A`, borderColor: `${colors.accent}55` },
+  stepText: { ...t.dataSmall, color: colors.textDim, fontSize: 8, textAlign: 'center' },
+  stepTextOn: { color: colors.accent },
   label: { ...t.eyebrow, color: colors.textDim, marginBottom: 8, marginTop: 10 },
   chipScroller: { marginBottom: 4 },
   chip: { backgroundColor: colors.backgroundAlt, borderColor: colors.borderStrong, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, marginRight: 8, paddingHorizontal: 13, paddingVertical: 9 },
@@ -172,17 +203,19 @@ const styles = StyleSheet.create({
   segmentOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   segmentText: { ...t.label, color: colors.textMuted, fontSize: 10, textTransform: 'uppercase' },
   segmentTextOn: { color: colors.accentInk },
-  resultBox: { backgroundColor: colors.background, borderColor: `${colors.accent}55`, borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 16 },
-  resultKicker: { ...t.eyebrow, color: colors.textFaint, marginBottom: 6 },
-  resultMain: { ...t.displaySmall, color: colors.accent, fontSize: 30, lineHeight: 34 },
+  resultBox: { backgroundColor: colors.surface, borderColor: `${colors.accent}55`, borderRadius: 24, borderWidth: 1, marginTop: 16, overflow: 'hidden', padding: 18, position: 'relative' },
+  resultKicker: { ...t.eyebrow, color: colors.accent, marginBottom: 6 },
+  resultMain: { ...t.displayLg, color: colors.accent },
+  resultTicks: { marginBottom: 8, marginTop: 4 },
   resultSub: { ...t.bodySmall, color: colors.textMuted, marginTop: 4 },
   errorText: { ...t.bodySmall, color: colors.warning },
   button: { backgroundColor: colors.accent, borderRadius: 13, marginTop: 16, paddingVertical: 14 },
   buttonDisabled: { opacity: 0.45 },
   buttonText: { ...t.label, color: colors.accentInk, textAlign: 'center' },
+  disclaimer: { ...t.dataSmall, color: colors.textDim, lineHeight: 16, marginTop: 10, textAlign: 'center' },
   savedWrap: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 18, paddingTop: 14 },
   savedTitle: { ...t.eyebrow, color: colors.textDim, marginBottom: 10 },
-  savedRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
+  savedRow: { backgroundColor: colors.backgroundAlt, borderColor: colors.border, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 11 },
   savedName: { ...t.label, color: colors.text, flex: 1, fontSize: 12 },
   savedMeta: { ...t.dataSmall, color: colors.textMuted, flex: 1.2, textAlign: 'right' },
   pressed: { opacity: 0.82 },

@@ -27,12 +27,12 @@ const concernBoosts: Record<QuizConcern, GoalTag[]> = {
 };
 
 const concernLabels: Record<QuizConcern, string> = {
-  dryness: 'low resilience',
-  'uneven-texture': 'aesthetic upkeep',
-  redness: 'inflammation',
-  'fine-lines': 'visible aging',
-  dullness: 'flat energy',
-  sensitivity: 'slow recovery',
+  dryness: 'dryness',
+  'uneven-texture': 'texture',
+  redness: 'redness',
+  'fine-lines': 'fine-line appearance',
+  dullness: 'dullness',
+  sensitivity: 'sensitivity',
 };
 
 const budgetOrder: Record<BudgetPreference, Compound['budgetTier'][]> = {
@@ -170,17 +170,17 @@ function buildReasoning(compound: Compound, answers: QuizAnswers, index: number)
   } else if (index === 1) {
     sentences.push(`${compound.name} backstops the primary with a complementary angle.`);
   } else {
-    sentences.push(`${compound.name} rounds out the stack as support, not the headline.`);
+    sentences.push(`${compound.name} rounds out the saved items as supporting context.`);
   }
 
   if (matchingConcern) {
-    sentences.push(`It also fits the ${concernLabels[matchingConcern]} concern you called out.`);
+    sentences.push(`It also fits the ${concernLabels[matchingConcern]} context you called out.`);
   }
   if (answers.injectionComfort !== 'fine' && !compound.administrationRoutes.includes('injection')) {
-    sentences.push('It stays on the easier side because it does not force an injection-only route.');
+    sentences.push('It stays on the easier side because it is not injection-only in the library.');
   }
   if (answers.experienceLevel === 'never' && compound.difficulty === 'beginner') {
-    sentences.push('It is beginner-friendly, which keeps the stack more realistic as a first step.');
+    sentences.push('It is beginner-friendly, which keeps the saved items more approachable.');
   }
   return sentences.join(' ');
 }

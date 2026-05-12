@@ -16,7 +16,31 @@ export type AdministrationRoute = 'oral' | 'sublingual' | 'nasal' | 'injection' 
 
 export type BudgetTier = 'low' | 'mid' | 'high';
 
-export type LegalStatus = 'cosmetic' | 'research';
+export type LegalStatus = 'cosmetic' | 'research' | 'approved-rx' | 'investigational';
+
+export type RegulatoryStatus =
+  | 'approved-rx'
+  | 'cosmetic-topical'
+  | 'research-only'
+  | 'investigational'
+  | 'compounding-concern';
+
+export type RiskBadge =
+  | 'FDA-approved Rx'
+  | 'Prescription-only'
+  | 'Research-only'
+  | 'Limited human data'
+  | 'FDA compounding concern'
+  | 'WADA athlete caution'
+  | 'Cosmetic topical'
+  | 'Investigational';
+
+export interface EvidenceProfile {
+  preclinical: number;
+  humanTrials: number;
+  anecdotal: number;
+  cosmetic: number;
+}
 
 export interface Compound {
   id: string;
@@ -34,4 +58,17 @@ export interface Compound {
   thingsToKnow: string[];
   budgetTier: BudgetTier;
   legalStatus: LegalStatus;
+  regulatoryStatus: RegulatoryStatus;
+  riskBadges: RiskBadge[];
+  athleteCaution?: string;
+  evidenceNote: string;
+  trackingDisclaimer: string;
+  class?: string;
+  origin?: string;
+  tags?: string[];
+  pullQuote?: string;
+  evidence?: EvidenceProfile;
+  relatedCompoundIds?: string[];
+  evidenceLabel?: 'Promising' | 'Mixed' | 'Limited' | 'Early' | 'Cosmetic';
+  breadth?: 1 | 2 | 3;
 }

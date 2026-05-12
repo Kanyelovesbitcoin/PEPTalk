@@ -4,15 +4,19 @@ import { Platform } from 'react-native';
 import { STORAGE_KEYS } from '@/lib/constants/storage';
 import { getUpcomingScheduledDoses } from '@/lib/utils/trackerDates';
 import { storage } from '@/lib/utils/storage';
+import { parseJsonObject, setJsonItem } from '@/lib/utils/storageJson';
 import type { DoseSchedule } from '@/types/tracker';
 
 type ScheduleNotificationMap = Record<string, string[]>;
 
-const CHANNEL_ID = 'protocol-reminders';
+const CHANNEL_ID = 'routine-reminders';
 const PRE_SCHEDULE_COUNT = 30;
 const isExpoGo = Constants.appOwnership === 'expo';
 
 type NotificationsModule = typeof import('expo-notifications');
+interface ScheduleReminderOptions {
+  requestPermission?: boolean;
+}
 
 let notificationsModule: NotificationsModule | null = null;
 
@@ -37,25 +41,15 @@ async function getNotifications() {
   return notificationsModule;
 }
 
-function parseMap(value: string | null): ScheduleNotificationMap {
-  if (!value) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' ? (parsed as ScheduleNotificationMap) : {};
-  } catch {
-    return {};
-  }
-}
-
 async function getNotificationMap() {
-  return parseMap(await storage.getItem(STORAGE_KEYS.scheduleNotificationIds));
+  return parseJsonObject<ScheduleNotificationMap>(
+    await storage.getItem(STORAGE_KEYS.scheduleNotificationIds),
+    STORAGE_KEYS.scheduleNotificationIds,
+  );
 }
 
 async function saveNotificationMap(map: ScheduleNotificationMap) {
-  await storage.setItem(STORAGE_KEYS.scheduleNotificationIds, JSON.stringify(map));
+  await setJsonItem(STORAGE_KEYS.scheduleNotificationIds, map);
 }
 
 export async function ensureNotificationSetup() {
@@ -67,8 +61,8 @@ export async function ensureNotificationSetup() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       importance: Notifications.AndroidImportance.HIGH,
-      lightColor: '#00FF88',
-      name: 'Protocol reminders',
+      lightColor: '#D4A84B',
+      name: 'Routine reminders',
       sound: 'default',
       vibrationPattern: [0, 250, 250, 250],
     });
@@ -92,6 +86,12 @@ export async function requestNotificationPermissions() {
   return requested.granted || requested.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 
+async function hasNotificationPermissions(Notifications: NotificationsModule) {
+  await ensureNotificationSetup();
+  const existing = await Notifications.getPermissionsAsync();
+  return existing.granted || existing.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+}
+
 export async function cancelScheduleReminders(scheduleId: string) {
   const Notifications = await getNotifications();
   if (!Notifications) {
@@ -106,7 +106,7 @@ export async function cancelScheduleReminders(scheduleId: string) {
   await saveNotificationMap(map);
 }
 
-export async function scheduleDoseReminders(schedule: DoseSchedule) {
+export async function scheduleDoseReminders(schedule: DoseSchedule, options: ScheduleReminderOptions = {}) {
   const Notifications = await getNotifications();
   if (!Notifications) {
     return false;
@@ -117,7 +117,10 @@ export async function scheduleDoseReminders(schedule: DoseSchedule) {
     return false;
   }
 
-  const granted = await requestNotificationPermissions();
+  const granted =
+    options.requestPermission === false
+      ? await hasNotificationPermissions(Notifications)
+      : await requestNotificationPermissions();
   if (!granted) {
     return false;
   }
@@ -129,7 +132,7 @@ export async function scheduleDoseReminders(schedule: DoseSchedule) {
     upcoming.map((preview) =>
       Notifications.scheduleNotificationAsync({
         content: {
-          body: 'Time to review your scheduled protocol.',
+          body: 'Time to review your scheduled tracker.',
           data: { scheduleId: schedule.id, scheduledAt: preview.scheduledAt },
           sound: 'default',
           title: 'GlowPep reminder',
@@ -163,7 +166,7 @@ export async function reconcileDoseReminders(schedules: DoseSchedule[]) {
   await Promise.all(
     schedules.map((schedule) =>
       schedule.active && schedule.remindersEnabled
-        ? scheduleDoseReminders(schedule)
+        ? scheduleDoseReminders(schedule, { requestPermission: false })
         : cancelScheduleReminders(schedule.id),
     ),
   );

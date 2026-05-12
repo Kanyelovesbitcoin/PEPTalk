@@ -1,62 +1,113 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LockedSection } from '@/components/LockedSection';
+import { TrialAccessState } from '@/components/TrialAccessState';
 import { colors } from '@/lib/constants/colors';
-import { fonts } from '@/lib/constants/typography';
-import { useAiPreview } from '@/lib/hooks/useAiPreview';
+import { rhythm } from '@/lib/constants/layout';
+import { fonts, type as t } from '@/lib/constants/typography';
 import { usePro } from '@/lib/hooks/usePro';
 import { useQuiz } from '@/lib/hooks/useQuiz';
+import { setFreeModeNotice } from '@/lib/utils/freeModeNotice';
+import { showPaywallWithTimeout } from '@/lib/utils/paywallTimeout';
 
 export default function QuizIntroScreen() {
-  const { isPro, showPaywall } = usePro();
-  const { freeAiStackUsed } = useAiPreview();
+  const { isPro, isReady: proReady, showPaywall } = usePro();
   const { resetQuiz, savedStacks } = useQuiz();
-  const canStartQuiz = isPro || !freeAiStackUsed;
+  const [checkingAccess, setCheckingAccess] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!proReady || isPro || checkingAccess || accessError) {
+      return;
+    }
+
+    let active = true;
+    setCheckingAccess(true);
+    showPaywallWithTimeout(showPaywall).then(async (paywallResult) => {
+      if (!active) {
+        return;
+      }
+
+      if (paywallResult.status === 'timeout') {
+        setCheckingAccess(false);
+        setAccessError('The trial check is taking longer than expected. You can retry or return to the workspace.');
+        return;
+      }
+
+      const { result } = paywallResult;
+      if (!result.didUnlock) {
+        await setFreeModeNotice('The deep guide is a Pro feature. Free mode is still ready with Library, Today\'s Rotation, and local logs.');
+      }
+      router.replace(result.didUnlock ? '/quiz/1' : '/(tabs)');
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [accessError, checkingAccess, isPro, proReady, showPaywall]);
+
+  if (!proReady || checkingAccess || accessError || !isPro) {
+    return (
+      <TrialAccessState
+        error={accessError}
+        onContinue={() => router.replace('/(tabs)')}
+        onRetry={() => {
+          setAccessError(null);
+          setCheckingAccess(false);
+        }}
+        title="Opening trial access"
+      />
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-            <Text style={styles.backText}>Back</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+            <Ionicons color={colors.text} name="arrow-back" size={18} />
           </Pressable>
+          <Text style={styles.progress}>PRO GLOWMAX GUIDE</Text>
           <Pressable
+            accessibilityRole="button"
             onPress={() => router.replace('/(tabs)/ai')}
-            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Ionicons color={colors.text} name="close" size={20} />
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+            <Ionicons color={colors.text} name="close" size={18} />
           </Pressable>
         </View>
 
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>{isPro ? 'Pro' : freeAiStackUsed ? 'Pro feature' : 'Free preview'}</Text>
-          <Text style={styles.title}>Get your GlowPep stack</Text>
-          <Text style={styles.subtitle}>
-            Answer 10 quick questions and we&apos;ll build a personalized stack with AI-powered insights tailored to your goals.
-          </Text>
-          <View style={styles.list}>
-            <Text style={styles.listItem}>• Goal-first scoring tuned to your profile</Text>
-            <Text style={styles.listItem}>• AI-generated explanations for every recommendation</Text>
-            <Text style={styles.listItem}>• Save your results locally and revisit them anytime</Text>
-          </View>
-          {canStartQuiz ? (
-            <Pressable
-              onPress={() => {
-                resetQuiz();
-                router.push('/quiz/1');
-              }}
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-              <Text style={styles.primaryButtonText}>{isPro ? 'Start Quiz' : 'Use Free AI Preview'}</Text>
-            </Pressable>
-          ) : (
-            <LockedSection onPress={showPaywall} />
-          )}
+        <View style={styles.heroMark}>
+          <Ionicons color={colors.accent} name="flask" size={30} />
         </View>
+        <Text style={styles.kicker}>DEEP GLOWMAX ORGANIZATION</Text>
+        <Text style={styles.title}>Build a saved list around your baseline.</Text>
+        <Text style={styles.subtitle}>
+          Ten focused screens turn your goal, comfort level, routine context, and research interests into a private list of saved items.
+        </Text>
+
+        <View style={styles.promisePanel}>
+          <PromiseRow label="Signal-first educational ranking" />
+          <PromiseRow label="Cosmetic and legal context stays visible" />
+          <PromiseRow label="Saved items, tracking notes, and regenerated context" />
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            resetQuiz();
+            router.push('/quiz/1');
+          }}
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+          <Text style={styles.primaryButtonText}>Start Glowmax guide</Text>
+          <Ionicons color={colors.accentInk} name="arrow-forward" size={18} />
+        </Pressable>
 
         {savedStacks[0] ? (
           <Pressable
+            accessibilityRole="button"
             onPress={() =>
               router.push({
                 pathname: '/quiz/results',
@@ -64,7 +115,7 @@ export default function QuizIntroScreen() {
               })
             }
             style={({ pressed }) => [styles.secondaryCard, pressed && styles.pressed]}>
-            <Text style={styles.secondaryTitle}>Open latest saved stack</Text>
+            <Text style={styles.secondaryTitle}>Open saved items</Text>
             <Text style={styles.secondaryCopy}>Jump straight back into the last result you saved on this device.</Text>
           </Pressable>
         ) : null}
@@ -73,111 +124,103 @@ export default function QuizIntroScreen() {
   );
 }
 
+function PromiseRow({ label }: { label: string }) {
+  return (
+    <View style={styles.promiseRow}>
+      <Ionicons color={colors.accent} name="checkmark" size={16} />
+      <Text style={styles.promiseText}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: colors.background,
-    flex: 1,
-  },
+  safeArea: { backgroundColor: colors.background, flex: 1 },
   content: {
-    paddingHorizontal: 14,
-    paddingTop: 18,
-    paddingBottom: 150,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: 130,
+    paddingHorizontal: rhythm.screenX,
+    paddingTop: rhythm.screenTop,
   },
+  loaderWrap: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 14,
+    justifyContent: 'center',
+    paddingHorizontal: rhythm.screenX,
+  },
+  loaderText: { ...t.bodySmall, color: colors.textMuted, textAlign: 'center' },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 34,
   },
-  backButton: {
-    backgroundColor: colors.surfaceGlass,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  closeButton: {
+  iconButton: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceGlass,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderRadius: 999,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
-  },
-  backText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  hero: {
-    backgroundColor: colors.surfaceGlass,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 22,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
   },
-  kicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.9,
-    marginBottom: 10,
-    textTransform: 'uppercase',
+  progress: { ...t.eyebrow, color: colors.textMuted, letterSpacing: 1.3 },
+  heroMark: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 70,
+    justifyContent: 'center',
+    marginBottom: 24,
+    width: 70,
   },
+  kicker: { ...t.eyebrow, color: colors.accent, marginBottom: 14 },
   title: {
     color: colors.text,
-    fontFamily: fonts.sansMedium,
-    fontSize: 30,
-    letterSpacing: -0.7,
-    lineHeight: 36,
-    marginBottom: 12,
+    fontFamily: fonts.serifLight,
+    fontSize: 40,
+    letterSpacing: -0.8,
+    lineHeight: 43,
+    marginBottom: 16,
+    maxWidth: 340,
   },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  list: {
-    marginTop: 18,
-  },
-  listItem: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 23,
-    marginBottom: 8,
-  },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    marginTop: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  secondaryCard: {
-    backgroundColor: colors.surfaceGlass,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20,
+  subtitle: { ...t.body, color: colors.textMuted, lineHeight: 24, maxWidth: 342 },
+  promisePanel: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    marginTop: 16,
-    padding: 18,
+    gap: 14,
+    marginTop: 28,
+    padding: 16,
   },
-  secondaryTitle: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 8,
+  promiseRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  promiseText: { ...t.bodySmall, color: colors.text, flex: 1 },
+  primaryButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 24,
+    minHeight: 54,
+    paddingHorizontal: 18,
   },
-  secondaryCopy: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 21,
+  primaryButtonText: { ...t.label, color: colors.accentInk, fontSize: 15 },
+  secondaryCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 14,
+    padding: 16,
   },
-  pressed: {
-    opacity: 0.9,
-  },
+  secondaryTitle: { ...t.label, color: colors.text, marginBottom: 6 },
+  secondaryCopy: { ...t.bodySmall, color: colors.textMuted },
+  pressed: { opacity: 0.86 },
 });

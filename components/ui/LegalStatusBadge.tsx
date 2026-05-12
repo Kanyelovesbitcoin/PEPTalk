@@ -5,8 +5,10 @@ import { type as t } from '@/lib/constants/typography';
 import type { LegalStatus } from '@/types/compound';
 
 const META: Record<LegalStatus, { label: string; tint: string; ink: string }> = {
-  cosmetic: { label: 'COSMETIC · LEGAL', tint: 'rgba(182, 200, 120, 0.16)', ink: colors.success },
-  research: { label: 'RESEARCH USE', tint: 'rgba(212, 175, 55, 0.14)', ink: colors.accentSoft },
+  'approved-rx': { label: 'FDA-approved Rx', tint: `${colors.accent}14`, ink: colors.accentSoft },
+  cosmetic: { label: 'Cosmetic reference', tint: `${colors.accent}14`, ink: colors.accentSoft },
+  investigational: { label: 'Investigational', tint: colors.textFaint, ink: colors.textMuted },
+  research: { label: 'Research reference', tint: `${colors.accent}14`, ink: colors.accentSoft },
 };
 
 interface LegalStatusBadgeProps {
@@ -18,8 +20,8 @@ export function LegalStatusBadge({ status, compact = false }: Readonly<LegalStat
   const meta = META[status];
   return (
     <View style={[styles.pill, { backgroundColor: meta.tint }, compact && styles.compact]}>
-      <View style={[styles.dot, { backgroundColor: meta.ink }]} />
-      <Text style={[styles.label, { color: meta.ink }]}>{meta.label}</Text>
+      <View style={[styles.dot, { backgroundColor: meta.ink }, compact && styles.compactDot]} />
+      <Text style={[styles.label, { color: meta.ink }, compact && styles.compactLabel]}>{meta.label}</Text>
     </View>
   );
 }
@@ -35,7 +37,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   compact: {
-    paddingHorizontal: 6,
+    gap: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
   },
   dot: {
@@ -46,6 +49,15 @@ const styles = StyleSheet.create({
   label: {
     ...t.eyebrow,
     fontSize: 9,
-    letterSpacing: 1.4,
+    letterSpacing: 0.4,
+    textTransform: 'none',
+  },
+  compactDot: {
+    height: 4,
+    width: 4,
+  },
+  compactLabel: {
+    fontSize: 8,
+    letterSpacing: 1,
   },
 });

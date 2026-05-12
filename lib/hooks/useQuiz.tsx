@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { STORAGE_KEYS } from '@/lib/constants/storage';
 import { compounds } from '@/lib/data/compounds';
 import { buildStackResult } from '@/lib/utils/stackLogic';
 import { storage } from '@/lib/utils/storage';
+import { parseJsonArray, parseJsonValue, setJsonItem } from '@/lib/utils/storageJson';
 import type { QuizAnswers, StackResult } from '@/types/quiz';
 
 type QuizDraft = Partial<QuizAnswers>;
@@ -61,13 +62,8 @@ export function QuizProvider({ children }: { children: ReactNode }) {
           storage.getItem(STORAGE_KEYS.savedStacks),
         ]);
 
-        if (storedDraft) {
-          setQuizAnswers(JSON.parse(storedDraft) as QuizDraft);
-        }
-
-        if (storedStacks) {
-          setSavedStacks(JSON.parse(storedStacks) as StackResult[]);
-        }
+        setQuizAnswers(parseJsonValue<QuizDraft>(storedDraft, {}, STORAGE_KEYS.quizDraft));
+        setSavedStacks(parseJsonArray<StackResult>(storedStacks, STORAGE_KEYS.savedStacks));
       } finally {
         setIsReady(true);
       }
@@ -81,7 +77,7 @@ export function QuizProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    storage.setItem(STORAGE_KEYS.quizDraft, JSON.stringify(quizAnswers));
+    setJsonItem(STORAGE_KEYS.quizDraft, quizAnswers);
   }, [isReady, quizAnswers]);
 
   useEffect(() => {
@@ -89,49 +85,75 @@ export function QuizProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    storage.setItem(STORAGE_KEYS.savedStacks, JSON.stringify(savedStacks));
+    setJsonItem(STORAGE_KEYS.savedStacks, savedStacks);
   }, [isReady, savedStacks]);
 
-  const value: QuizContextValue = {
+  const updateAnswer = useCallback(<K extends keyof QuizAnswers>(key: K, value: QuizAnswers[K]) => {
+    setQuizAnswers((current) => ({ ...current, [key]: value }));
+  }, []);
+
+  const resetQuiz = useCallback(() => {
+    setQuizAnswers({});
+    setCurrentResult(null);
+  }, []);
+
+  const generateResult = useCallback((answersOverride?: QuizAnswers) => {
+    const answerSource = answersOverride ?? quizAnswers;
+
+    if (!hasCompleteAnswers(answerSource)) {
+      return null;
+    }
+
+    const result = buildStackResult(answerSource, compounds);
+    setCurrentResult(result);
+    return result;
+  }, [quizAnswers]);
+
+  const saveStack = useCallback((result?: StackResult) => {
+    const stackToSave = result ?? currentResult;
+    if (!stackToSave) {
+      return;
+    }
+
+    setSavedStacks((current) => {
+      if (current.some((stack) => stack.id === stackToSave.id)) {
+        return current;
+      }
+
+      return [stackToSave, ...current];
+    });
+  }, [currentResult]);
+
+  const getSavedStack = useCallback(
+    (stackId: string) => savedStacks.find((stack) => stack.id === stackId),
+    [savedStacks],
+  );
+
+  const isComplete = useMemo(() => hasCompleteAnswers(quizAnswers), [quizAnswers]);
+
+  const value: QuizContextValue = useMemo(() => ({
     isReady,
     quizAnswers,
     savedStacks,
     currentResult,
-    updateAnswer: (key, value) => {
-      setQuizAnswers((current) => ({ ...current, [key]: value }));
-    },
-    resetQuiz: () => {
-      setQuizAnswers({});
-      setCurrentResult(null);
-    },
-    generateResult: (answersOverride) => {
-      const answerSource = answersOverride ?? quizAnswers;
-
-      if (!hasCompleteAnswers(answerSource)) {
-        return null;
-      }
-
-      const result = buildStackResult(answerSource, compounds);
-      setCurrentResult(result);
-      return result;
-    },
-    saveStack: (result) => {
-      const stackToSave = result ?? currentResult;
-      if (!stackToSave) {
-        return;
-      }
-
-      setSavedStacks((current) => {
-        if (current.some((stack) => stack.id === stackToSave.id)) {
-          return current;
-        }
-
-        return [stackToSave, ...current];
-      });
-    },
-    getSavedStack: (stackId) => savedStacks.find((stack) => stack.id === stackId),
-    isComplete: hasCompleteAnswers(quizAnswers),
-  };
+    updateAnswer,
+    resetQuiz,
+    generateResult,
+    saveStack,
+    getSavedStack,
+    isComplete,
+  }), [
+    currentResult,
+    generateResult,
+    getSavedStack,
+    isComplete,
+    isReady,
+    quizAnswers,
+    resetQuiz,
+    saveStack,
+    savedStacks,
+    updateAnswer,
+  ]);
 
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;
 }

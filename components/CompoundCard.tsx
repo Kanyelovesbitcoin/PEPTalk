@@ -11,7 +11,7 @@ const ROUTE_ICONS: Record<AdministrationRoute, { icon: any; label: string }> = {
   oral: { icon: 'medkit-outline', label: 'ORAL' },
   sublingual: { icon: 'water-outline', label: 'SUB' },
   nasal: { icon: 'cloud-outline', label: 'NASAL' },
-  injection: { icon: 'cellular-outline', label: 'INJ' },
+  injection: { icon: 'cellular-outline', label: 'NON-ORAL' },
   topical: { icon: 'hand-left-outline', label: 'TOPIC' },
 };
 
@@ -57,11 +57,16 @@ export function CompoundCard({
 
   return (
     <Pressable
+      accessibilityLabel={`Open ${compound.name}. ${compound.summary}`}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
       <View style={styles.topRow}>
         <LegalStatusBadge status={compound.legalStatus} compact />
         <Pressable
+          accessibilityLabel={`${isFavorite ? 'Remove' : 'Save'} ${compound.name}`}
+          accessibilityRole="button"
+          accessibilityState={{ selected: isFavorite }}
           hitSlop={10}
           onPress={onToggleFavorite}
           style={({ pressed }) => [styles.favBtn, pressed && styles.favPressed]}>
@@ -80,6 +85,12 @@ export function CompoundCard({
         {compound.summary}
       </Text>
 
+      <View style={styles.badgeRow}>
+        {compound.riskBadges.slice(0, 2).map((badge) => (
+          <Text key={badge} numberOfLines={1} style={styles.riskBadge}>{badge}</Text>
+        ))}
+      </View>
+
       <View style={styles.meta}>
         <View style={styles.metaCell}>
           <Text style={styles.metaKey}>ROUTE</Text>
@@ -87,7 +98,7 @@ export function CompoundCard({
             {routeMeta ? (
               <Ionicons color={colors.textMuted} name={routeMeta.icon} size={12} />
             ) : null}
-            <Text style={styles.metaVal}>{routeMeta?.label ?? '—'}</Text>
+            <Text style={styles.metaVal}>{routeMeta?.label ?? '-'}</Text>
           </View>
         </View>
         <View style={[styles.metaCell, styles.metaCellMid]}>
@@ -97,7 +108,7 @@ export function CompoundCard({
           </View>
         </View>
         <View style={[styles.metaCell, styles.metaCellRight]}>
-          <Text style={styles.metaKey}>BUDGET</Text>
+          <Text style={styles.metaKey}>BREADTH</Text>
           <View style={styles.metaValRow}>
             <BudgetScale tier={compound.budgetTier} />
           </View>
@@ -136,9 +147,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.backgroundAlt,
     borderRadius: 999,
-    height: 24,
+    height: 44,
     justifyContent: 'center',
-    width: 24,
+    width: 44,
   },
   favPressed: {
     opacity: 0.5,
@@ -168,6 +179,26 @@ const styles = StyleSheet.create({
     ...t.bodySmall,
     color: colors.textMuted,
     marginTop: 12,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginTop: 14,
+  },
+  riskBadge: {
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    color: colors.textMuted,
+    fontFamily: fonts.monoMedium,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    textTransform: 'uppercase',
   },
   meta: {
     backgroundColor: colors.backgroundAlt,

@@ -7,12 +7,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '@/lib/constants/colors';
 import { fonts } from '@/lib/constants/typography';
+import { hapticSelection } from '@/lib/utils/haptics';
 
 const TABS = [
-  { routeName: 'index', icon: 'home-outline', activeIcon: 'home', label: 'Today' },
-  { routeName: 'ai', icon: 'flask-outline', activeIcon: 'flask', label: 'Stack' },
-  { routeName: 'tracker', icon: 'reader-outline', activeIcon: 'reader', label: 'Log' },
-  { routeName: 'library', icon: 'library-outline', activeIcon: 'library', label: 'Library' },
+  { routeName: 'index', icon: 'sparkles-outline', activeIcon: 'sparkles', label: 'Today' },
+  { routeName: 'ai', icon: 'flask-outline', activeIcon: 'flask', label: 'Peptides' },
+  { routeName: 'library', icon: 'book-outline', activeIcon: 'book', label: 'Library' },
+  { routeName: 'tracker', icon: 'stats-chart-outline', activeIcon: 'stats-chart', label: 'Progress' },
 ] as const;
 
 type TabRouteName = (typeof TABS)[number]['routeName'];
@@ -32,25 +33,11 @@ function TabItem({ focused, iconName, label }: {
   return (
     <View style={[styles.tabItem, focused && styles.tabItemActive]}>
       <View style={styles.tabContent}>
-        <Ionicons name={iconName} size={31} color={focused ? colors.accent : colors.text} />
+        <Ionicons name={iconName} size={focused ? 25 : 24} color={focused ? colors.accent : colors.textMuted} />
         <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
           {label}
         </Text>
       </View>
-    </View>
-  );
-}
-
-function CameraButton({ onPress }: { onPress: () => void }) {
-  return (
-    <View style={styles.cameraSlot}>
-      <Pressable
-        accessibilityLabel="Capture specimen"
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => [styles.cameraBtn, pressed && styles.cameraBtnPressed]}>
-        <Ionicons color={colors.accentInk} name="camera" size={32} />
-      </Pressable>
     </View>
   );
 }
@@ -68,6 +55,7 @@ function RouteTabButton({ config, props }: { config: TabItemConfig; props: Botto
   const onPress = () => {
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!isFocused && !event.defaultPrevented) {
+      hapticSelection();
       navigation.navigate(route.name);
     }
   };
@@ -92,6 +80,13 @@ function RouteTabButton({ config, props }: { config: TabItemConfig; props: Botto
 function CustomTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const safeBottom = Math.max(insets.bottom, 8);
+  const leftTabs = TABS.slice(0, 2);
+  const rightTabs = TABS.slice(2);
+
+  const openQuickLog = () => {
+    hapticSelection();
+    router.push({ pathname: '/(tabs)/tracker', params: { quickLog: '1' } });
+  };
 
   return (
     <View style={[styles.barOuter, { paddingBottom: safeBottom }]}>
@@ -99,11 +94,22 @@ function CustomTabBar(props: BottomTabBarProps) {
         <BlurView intensity={72} style={StyleSheet.absoluteFill} tint="dark" />
       </View>
       <View style={styles.barInner}>
-        <RouteTabButton config={TABS[0]} props={props} />
-        <RouteTabButton config={TABS[1]} props={props} />
-        <CameraButton onPress={() => router.push('/scan')} />
-        <RouteTabButton config={TABS[2]} props={props} />
-        <RouteTabButton config={TABS[3]} props={props} />
+        {leftTabs.map((tab) => (
+          <RouteTabButton config={tab} key={tab.routeName} props={props} />
+        ))}
+        <Pressable
+          accessibilityLabel="Log an entry"
+          accessibilityRole="button"
+          onPress={openQuickLog}
+          style={({ pressed }) => [styles.logTouch, pressed && styles.logPressed]}>
+          <View style={styles.logButton}>
+            <Ionicons color={colors.accentInk} name="add" size={25} />
+          </View>
+          <Text style={styles.logLabel}>Log</Text>
+        </Pressable>
+        {rightTabs.map((tab) => (
+          <RouteTabButton config={tab} key={tab.routeName} props={props} />
+        ))}
       </View>
     </View>
   );
@@ -127,40 +133,75 @@ export default function TabLayout() {
   );
 }
 
-const TAB_BAR_HEIGHT = 64;
-const CAMERA_SIZE = 70;
+const TAB_BAR_HEIGHT = 70;
 
 const styles = StyleSheet.create({
   barOuter: {
     backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-    paddingTop: 10,
+    paddingHorizontal: 14,
+    paddingTop: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.46,
-    shadowRadius: 22,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.34,
+    shadowRadius: 24,
+    elevation: 14,
   },
   barBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(22, 19, 14, 0.96)',
-    borderColor: colors.border,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(22, 20, 16, 0.96)',
+    borderColor: colors.borderStrong,
+    borderRadius: 30,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
   barInner: {
     alignItems: 'center',
     flexDirection: 'row',
     height: TAB_BAR_HEIGHT,
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  logButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderColor: colors.accentSoft,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 58,
+    justifyContent: 'center',
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    width: 58,
+  },
+  logLabel: {
+    color: colors.accent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0,
+    lineHeight: 13,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  logPressed: {
+    opacity: 0.82,
+    transform: [{ translateY: 1 }],
+  },
+  logTouch: {
+    alignItems: 'center',
+    flex: 1,
+    height: 76,
+    justifyContent: 'flex-start',
+    marginTop: -16,
+    minHeight: 44,
+    minWidth: 58,
   },
   tabTouch: {
     flex: 1,
-    height: 58,
+    height: 54,
     minWidth: 44,
     minHeight: 44,
   },
@@ -169,13 +210,14 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     alignItems: 'center',
-    borderRadius: 20,
-    height: 58,
+    borderRadius: 24,
+    height: 54,
     justifyContent: 'center',
     opacity: 0.72,
+    paddingHorizontal: 8,
   },
   tabItemActive: {
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(212, 168, 75, 0.18)',
     opacity: 1,
   },
   tabContent: {
@@ -185,42 +227,14 @@ const styles = StyleSheet.create({
   tabLabel: {
     color: colors.text,
     fontFamily: fonts.sansMedium,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: -0.2,
-    lineHeight: 16,
-    marginTop: 4,
+    letterSpacing: 0,
+    lineHeight: 13,
+    marginTop: 3,
     textAlign: 'center',
   },
   tabLabelActive: {
     color: colors.accent,
-  },
-  cameraSlot: {
-    alignItems: 'center',
-    flex: 1,
-    height: TAB_BAR_HEIGHT,
-    justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 44,
-  },
-  cameraBtn: {
-    alignItems: 'center',
-    backgroundColor: colors.accent,
-    borderColor: colors.accentSoft,
-    borderRadius: 999,
-    borderWidth: 4,
-    height: CAMERA_SIZE,
-    justifyContent: 'center',
-    marginTop: -34,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.38,
-    shadowRadius: 28,
-    width: CAMERA_SIZE,
-    elevation: 14,
-  },
-  cameraBtnPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.96 }],
   },
 });

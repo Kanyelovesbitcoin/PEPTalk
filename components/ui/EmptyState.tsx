@@ -89,6 +89,8 @@ export function EmptyState({
         <View style={[styles.actions, illustrated && styles.actionsIllustrated]}>
           {cta ? (
             <Pressable
+              accessibilityLabel={cta.label}
+              accessibilityRole="button"
               onPress={cta.onPress}
               style={({ pressed }) => [
                 styles.cta,
@@ -96,11 +98,13 @@ export function EmptyState({
                 pressed && styles.pressed,
               ]}>
               <Text style={styles.ctaText}>{cta.label}</Text>
-              <Text style={styles.ctaArrow}>→</Text>
+              <Text style={styles.ctaArrow}>-&gt;</Text>
             </Pressable>
           ) : null}
           {secondary ? (
             <Pressable
+              accessibilityLabel={secondary.label}
+              accessibilityRole="button"
               hitSlop={8}
               onPress={secondary.onPress}
               style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
@@ -193,6 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flexDirection: 'row',
     gap: 8,
+    minHeight: 44,
     paddingHorizontal: 16,
     paddingVertical: 11,
   },
@@ -211,6 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   secondary: {
+    minHeight: 44,
     paddingVertical: 8,
   },
   secondaryText: {

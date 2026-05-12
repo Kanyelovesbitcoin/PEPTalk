@@ -91,13 +91,9 @@ export default function RootLayout() {
                     <Stack.Screen name="quiz/index" />
                     <Stack.Screen name="quiz/[step]" />
                     <Stack.Screen name="quiz/results" />
-                    <Stack.Screen
-                      name="scan"
-                      options={{
-                        presentation: 'modal',
-                        animation: 'slide_from_bottom',
-                      }}
-                    />
+                    <Stack.Screen name="skin-quiz/index" />
+                    <Stack.Screen name="skin-quiz/[step]" />
+                    <Stack.Screen name="skin-quiz/results" />
                     <Stack.Screen
                       name="profile-modal"
                       options={{

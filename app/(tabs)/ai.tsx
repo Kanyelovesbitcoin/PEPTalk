@@ -1,196 +1,501 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { RoutineSetupSheet } from '@/components/tracker/RoutineSetupSheet';
+import { LegalStatusBadge } from '@/components/ui/LegalStatusBadge';
 import { colors } from '@/lib/constants/colors';
+import { goals as goalDefs } from '@/lib/constants/goals';
+import { rhythm } from '@/lib/constants/layout';
 import { fonts, type as t } from '@/lib/constants/typography';
-import { compoundById } from '@/lib/data/compounds';
-import { goalById } from '@/lib/constants/goals';
-import { useQuiz } from '@/lib/hooks/useQuiz';
-import { useTracker } from '@/lib/hooks/useTracker';
+import { compounds } from '@/lib/data/compounds';
+import { useAdaptiveLayout } from '@/lib/hooks/useAdaptiveLayout';
+import { hapticSelection } from '@/lib/utils/haptics';
+import type { Compound, GoalTag } from '@/types/compound';
 
-export default function StackScreen() {
-  const { savedStacks, resetQuiz } = useQuiz();
-  const { isReady, schedules } = useTracker();
-  const [setupCompoundId, setSetupCompoundId] = useState<string | null>(null);
-  const latestStack = savedStacks[0] ?? null;
-  const setupCompound = setupCompoundId ? compoundById[setupCompoundId] ?? null : null;
+type Filter = GoalTag | 'all';
 
-  const items = useMemo(() => {
-    if (!latestStack) return [];
-    return latestStack.compounds.slice(0, 4).map((entry, i) => {
-      const compound = compoundById[entry.compoundId];
-      const tracked = schedules.some((schedule) => schedule.active && schedule.compoundId === entry.compoundId);
-      return {
-        id: entry.compoundId,
-        n: String(i + 1).padStart(2, '0'),
-        name: compound?.name ?? 'Peptide',
-        sub: compound?.summary ?? '',
-        tier: entry.tier,
-        reasoning: entry.reasoning,
-        goal: compound?.goals[0] ? goalById[compound.goals[0]].title : 'Tracking',
-        tracked,
-      };
+export default function PeptidesScreen() {
+  const layout = useAdaptiveLayout();
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+
+  const counts = useMemo(() => {
+    const tally: Record<string, number> = { all: compounds.length };
+    goalDefs.forEach((goal) => {
+      tally[goal.id] = compounds.filter((compound) => compound.goals.includes(goal.id)).length;
     });
-  }, [latestStack, schedules]);
+    return tally;
+  }, []);
 
-  const primaryGoalTitle = latestStack
-    ? goalById[latestStack.quizAnswers.primaryGoal].title.toLowerCase()
-    : 'looks and longevity';
+  const filteredCompounds = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
 
-  function trackCompound(compoundId: string) {
-    const compound = compoundById[compoundId];
-    if (!compound || schedules.some((schedule) => schedule.active && schedule.compoundId === compoundId)) return;
+    return compounds.filter((compound) => {
+      if (filter !== 'all' && !compound.goals.includes(filter)) return false;
+      if (!normalizedQuery) return true;
 
-    if (isReady) {
-      setSetupCompoundId(compoundId);
-    }
-  }
+      return (
+        compound.name.toLowerCase().includes(normalizedQuery)
+        || compound.nickname.toLowerCase().includes(normalizedQuery)
+        || compound.summary.toLowerCase().includes(normalizedQuery)
+        || compound.riskBadges.some((badge) => badge.toLowerCase().includes(normalizedQuery))
+      );
+    });
+  }, [filter, query]);
+
+  const listHeader = (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>PEPTIDE GUIDE</Text>
+        <Text style={styles.title}>Peptides</Text>
+        <Text style={styles.intro}>
+          Browse calm educational references, compare context, and open each guide when you want deeper detail.
+        </Text>
+        <View style={styles.statRow}>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{compounds.length}</Text>
+            <Text style={styles.statLabel}>references</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{goalDefs.length}</Text>
+            <Text style={styles.statLabel}>goals</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.searchWrap}>
+        <Ionicons color={colors.textDim} name="search" size={15} />
+        <TextInput
+          accessibilityLabel="Search peptide references"
+          onChangeText={setQuery}
+          placeholder="Search peptides..."
+          placeholderTextColor={colors.textDim}
+          style={styles.searchInput}
+          value={query}
+        />
+        {query ? (
+          <Pressable
+            accessibilityLabel="Clear peptide search"
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={() => setQuery('')}
+            style={({ pressed }) => [styles.clearButton, pressed && styles.pressed]}>
+            <Ionicons color={colors.textMuted} name="close" size={15} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.filterRow}
+        horizontal
+        showsHorizontalScrollIndicator={false}>
+        <FilterChip
+          active={filter === 'all'}
+          count={counts.all}
+          label="All"
+          onPress={() => {
+            hapticSelection();
+            setFilter('all');
+          }}
+        />
+        {goalDefs.map((goal) => (
+          <FilterChip
+            active={filter === goal.id}
+            count={counts[goal.id] ?? 0}
+            key={goal.id}
+            label={goal.title}
+            onPress={() => {
+              hapticSelection();
+              setFilter(goal.id);
+            }}
+          />
+        ))}
+      </ScrollView>
+
+      <View style={styles.notice}>
+        <Ionicons color={colors.accent} name="information-circle-outline" size={16} />
+        <Text style={styles.noticeText}>
+          Peptides are educational references for organization and personal tracking notes, not dosing or treatment guidance.
+        </Text>
+      </View>
+    </>
+  );
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
-          <Text style={styles.eyebrow}>
-            <Text style={styles.eyebrowDot}>● </Text>
-            {latestStack ? 'RECOMMENDED FOR YOU' : 'ROUTINE BUILDER'}
-          </Text>
-          <Text style={styles.title}>
-            Build around{`\n`}
-            <Text style={styles.titleAccent}>{primaryGoalTitle}</Text>
-          </Text>
-          <Text style={styles.intro}>
-            Answer the questionnaire for an educational shortlist. Nothing is added to your routine until you choose it.
-          </Text>
-        </View>
-        <View style={styles.ruleBold} />
-
-        {latestStack ? (
-          <>
-            <View style={styles.summaryRow}>
-              <SummaryCell label="Suggestions" value={String(items.length).padStart(2, '0')} />
-              <SummaryCell label="Tracking" value={String(items.filter((item) => item.tracked).length).padStart(2, '0')} />
-              <SummaryCell label="Goal" value={goalById[latestStack.quizAnswers.primaryGoal].shortTitle} compact />
-            </View>
-
-            {items.map((item) => (
-              <View key={item.id} style={styles.entry}>
-                <View style={styles.entryHead}>
-                  <Text style={styles.entryNum}>N° {item.n}</Text>
-                  <Text style={styles.entryTier}>{item.tier.toUpperCase()}</Text>
-                </View>
-                <Text style={styles.entryName}>{item.name}</Text>
-                <Text style={styles.entrySub}>{item.sub}</Text>
-                <Text style={styles.reasoning}>{item.reasoning}</Text>
-                <View style={styles.entryFooter}>
-                  <View style={styles.goalPill}>
-                    <Text style={styles.goalPillText}>{item.goal}</Text>
-                  </View>
-                  <Pressable
-                    disabled={!isReady}
-                    onPress={() => (item.tracked ? router.push('/(tabs)/tracker') : trackCompound(item.id))}
-                    style={({ pressed }) => [styles.trackButton, item.tracked && styles.trackButtonOn, !isReady && styles.disabled, pressed && styles.pressed]}>
-                    <Text style={[styles.trackButtonText, item.tracked && styles.trackButtonTextOn]}>
-                      {item.tracked ? 'In your routine' : 'Add to my routine'}
-                    </Text>
-                    <Ionicons color={item.tracked ? colors.accent : colors.accentInk} name={item.tracked ? 'checkmark' : 'add'} size={15} />
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-
-            <View style={styles.ctaBlock}>
-              <Pressable
-                onPress={() => {
-                  resetQuiz();
-                  router.push('/quiz');
-                }}
-                style={[styles.btn, styles.btnGhost]}>
-                <Text style={styles.btnGhostText}>Retake questionnaire</Text>
-                <Text style={styles.btnGhostArrow}>↻</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyBlock}>
-            <Text style={styles.emptyTitle}>Find your starting point.</Text>
-            <Text style={styles.emptyCopy}>
-              The questionnaire ranks peptides for your looks, recovery, focus, and longevity goals. You decide what goes into your routine.
-            </Text>
+      <FlatList
+        contentContainerStyle={[styles.listContent, { maxWidth: layout.pageMaxWidth }]}
+        data={filteredCompounds}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>No peptide references found.</Text>
+            <Text style={styles.emptyCopy}>Try a different search or clear the current filter.</Text>
             <Pressable
+              accessibilityLabel="Clear peptide filters"
+              accessibilityRole="button"
               onPress={() => {
-                resetQuiz();
-                router.push('/quiz');
+                hapticSelection();
+                setQuery('');
+                setFilter('all');
               }}
-              style={styles.btn}>
-              <Text style={styles.btnText}>Start questionnaire</Text>
-              <Text style={styles.btnArrow}>→</Text>
+              style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}>
+              <Text style={styles.emptyButtonText}>Clear filters</Text>
             </Pressable>
-            <Text style={styles.emptyFoot}>EDUCATIONAL · COSMETIC TRACKING · NOT MEDICAL ADVICE</Text>
           </View>
+        }
+        ListFooterComponent={
+          filteredCompounds.length ? (
+            <Pressable
+              accessibilityLabel="Explore the peptide library"
+              accessibilityRole="button"
+              onPress={() => router.push('/(tabs)/library')}
+              style={({ pressed }) => [styles.libraryLink, pressed && styles.pressed]}>
+              <View>
+                <Text style={styles.libraryLinkKicker}>DEEPER CONTEXT</Text>
+                <Text style={styles.libraryLinkTitle}>Explore library</Text>
+              </View>
+              <Ionicons color={colors.accent} name="book-outline" size={20} />
+            </Pressable>
+          ) : null
+        }
+        ListHeaderComponent={listHeader}
+        renderItem={({ item }) => (
+          <PeptideQuickCard
+            compound={item}
+            onLearn={() => router.push(`/compound/${item.id}`)}
+          />
         )}
-      </ScrollView>
-      <RoutineSetupSheet
-        compound={setupCompound}
-        onClose={() => setSetupCompoundId(null)}
-        visible={Boolean(setupCompound)}
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
 }
 
-function SummaryCell({ compact, label, value }: { compact?: boolean; label: string; value: string }) {
+function FilterChip({
+  active,
+  label,
+  count,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  count: number;
+  onPress: () => void;
+}) {
   return (
-    <View style={styles.summaryCell}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryValue, compact && styles.summaryValueCompact]} numberOfLines={1}>{value}</Text>
+    <Pressable
+      accessibilityLabel={`${label}, ${count} references`}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.filterChip, active && styles.filterChipActive, pressed && styles.pressed]}>
+      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+      <Text style={[styles.filterChipCount, active && styles.filterChipCountActive]}>{count}</Text>
+    </Pressable>
+  );
+}
+
+function PeptideQuickCard({
+  compound,
+  onLearn,
+}: {
+  compound: Compound;
+  onLearn: () => void;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTop}>
+        <Pressable
+          accessibilityLabel={`Learn about ${compound.name}`}
+          accessibilityRole="button"
+          onPress={onLearn}
+          style={({ pressed }) => [styles.learnButton, pressed && styles.pressed]}>
+          <Text style={styles.learnButtonText}>Learn</Text>
+          <Ionicons color={colors.textMuted} name="arrow-forward" size={14} />
+        </Pressable>
+        <LegalStatusBadge status={compound.legalStatus} compact />
+      </View>
+
+      <Text style={styles.cardName}>{compound.name}</Text>
+      {compound.nickname ? <Text style={styles.cardNickname}>{compound.nickname}</Text> : null}
+      <Text numberOfLines={2} style={styles.cardSummary}>{compound.summary}</Text>
+
+      <View style={styles.badgeRow}>
+        {compound.riskBadges.slice(0, 2).map((badge) => (
+          <Text key={badge} numberOfLines={1} style={styles.riskBadge}>{badge}</Text>
+        ))}
+      </View>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { backgroundColor: colors.background, flex: 1 },
-  scroll: { paddingBottom: 150 },
-  head: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 22 },
-  eyebrow: { ...t.eyebrow, color: colors.textDim },
-  eyebrowDot: { color: colors.accent },
-  title: { color: colors.text, fontFamily: fonts.serifLight, fontSize: 39, lineHeight: 42, letterSpacing: -1.4, marginTop: 8 },
-  titleAccent: { color: colors.accent },
-  intro: { color: colors.textMuted, fontFamily: fonts.sans, fontSize: 14, lineHeight: 22, marginTop: 14, maxWidth: 330 },
-  ruleBold: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong },
-  summaryRow: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', marginHorizontal: 22, marginTop: 18, overflow: 'hidden' },
-  summaryCell: { flex: 1, paddingHorizontal: 14, paddingVertical: 18 },
-  summaryLabel: { ...t.eyebrow, color: colors.textDim, fontSize: 9, marginBottom: 8 },
-  summaryValue: { color: colors.text, fontFamily: fonts.serifLight, fontSize: 30, letterSpacing: -1, lineHeight: 32 },
-  summaryValueCompact: { color: colors.accent, fontFamily: fonts.sansMedium, fontSize: 16, letterSpacing: -0.2, lineHeight: 22, paddingTop: 6 },
-  entry: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, marginHorizontal: 22, marginTop: 14, paddingHorizontal: 18, paddingVertical: 20 },
-  entryHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  entryNum: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.6 },
-  entryTier: { color: colors.accent, fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1 },
-  entryName: { color: colors.text, fontFamily: fonts.serifLight, fontSize: 28, letterSpacing: -1, lineHeight: 30, marginBottom: 6 },
-  entrySub: { color: colors.textMuted, fontFamily: fonts.sans, fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  reasoning: { backgroundColor: colors.backgroundAlt, borderRadius: 14, color: colors.textMuted, fontFamily: fonts.sans, fontSize: 14, lineHeight: 22, marginBottom: 18, padding: 14 },
-  entryFooter: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  goalPill: { borderColor: colors.border, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 8 },
-  goalPillText: { color: colors.textMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase' },
-  trackButton: { alignItems: 'center', backgroundColor: colors.accent, borderRadius: 999, flexDirection: 'row', gap: 6, minHeight: 44, paddingHorizontal: 14 },
-  trackButtonOn: { backgroundColor: 'transparent', borderColor: colors.borderStrong, borderWidth: StyleSheet.hairlineWidth },
-  trackButtonText: { color: colors.accentInk, fontFamily: fonts.sansMedium, fontSize: 13 },
-  trackButtonTextOn: { color: colors.accent },
-  ctaBlock: { paddingHorizontal: 22, paddingTop: 24 },
-  btn: { height: 58, backgroundColor: colors.accent, borderRadius: 16, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  btnText: { color: colors.accentInk, fontFamily: fonts.sansMedium, fontSize: 14 },
-  btnArrow: { color: colors.accentInk, fontFamily: fonts.mono, fontSize: 14 },
-  btnGhost: { backgroundColor: 'transparent', borderColor: colors.borderStrong, borderWidth: StyleSheet.hairlineWidth },
-  btnGhostText: { color: colors.text, fontFamily: fonts.sansMedium, fontSize: 14 },
-  btnGhostArrow: { color: colors.text, fontFamily: fonts.mono, fontSize: 14 },
-  emptyBlock: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, marginHorizontal: 22, marginTop: 28, padding: 22 },
-  emptyTitle: { color: colors.text, fontFamily: fonts.serifLight, fontSize: 30, letterSpacing: -0.8, marginBottom: 12 },
-  emptyCopy: { color: colors.textMuted, fontFamily: fonts.sans, fontSize: 14, lineHeight: 22, marginBottom: 24 },
-  emptyFoot: { color: colors.textDim, fontFamily: fonts.mono, fontSize: 9, letterSpacing: 1.3, lineHeight: 15, textAlign: 'center', marginTop: 18 },
-  disabled: { opacity: 0.48 },
+  listContent: { alignSelf: 'center', paddingBottom: rhythm.screenBottomTabs, width: '100%' },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: rhythm.screenX,
+    paddingTop: rhythm.screenTop,
+  },
+  eyebrow: {
+    ...t.eyebrow,
+    color: colors.accent,
+  },
+  title: {
+    color: colors.text,
+    fontFamily: fonts.serifLight,
+    fontSize: 42,
+    letterSpacing: -1.2,
+    lineHeight: 46,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  intro: {
+    color: colors.textMuted,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 12,
+    maxWidth: 340,
+    textAlign: 'center',
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  statCell: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    minWidth: 102,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  statValue: {
+    color: colors.text,
+    fontFamily: fonts.serifLight,
+    fontSize: 28,
+    lineHeight: 30,
+  },
+  statLabel: {
+    ...t.dataSmall,
+    color: colors.textDim,
+    marginTop: 2,
+  },
+  searchWrap: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 12,
+    marginHorizontal: rhythm.screenX,
+    marginTop: 20,
+    minHeight: 50,
+    paddingHorizontal: 14,
+  },
+  searchInput: {
+    color: colors.text,
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    minHeight: 44,
+  },
+  clearButton: {
+    alignItems: 'center',
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  filterRow: {
+    gap: 8,
+    paddingHorizontal: rhythm.screenX,
+    paddingTop: 16,
+  },
+  filterChip: {
+    alignItems: 'center',
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  filterChipActive: {
+    backgroundColor: `${colors.accent}20`,
+    borderColor: `${colors.accent}66`,
+  },
+  filterChipText: {
+    color: colors.textMuted,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+  },
+  filterChipTextActive: {
+    color: colors.text,
+  },
+  filterChipCount: {
+    color: colors.textDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+  },
+  filterChipCountActive: {
+    color: colors.accent,
+  },
+  notice: {
+    alignItems: 'flex-start',
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: rhythm.screenX,
+    marginTop: 16,
+    padding: 14,
+  },
+  noticeText: {
+    ...t.bodySmall,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  card: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: rhythm.cardRadius,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: rhythm.screenX,
+    marginTop: 14,
+    padding: rhythm.cardPadding,
+  },
+  cardTop: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 13,
+  },
+  cardName: {
+    color: colors.text,
+    fontFamily: fonts.serifLight,
+    fontSize: 30,
+    letterSpacing: -0.8,
+    lineHeight: 34,
+    textAlign: 'center',
+  },
+  cardNickname: {
+    ...t.bodySmall,
+    color: colors.textDim,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  cardSummary: {
+    ...t.bodySmall,
+    color: colors.textMuted,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  riskBadge: {
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    color: colors.textMuted,
+    fontFamily: fonts.monoMedium,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    textTransform: 'uppercase',
+  },
+  learnButton: {
+    alignItems: 'center',
+    borderColor: colors.borderStrong,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 44,
+    paddingHorizontal: 15,
+  },
+  learnButtonText: {
+    color: colors.text,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+  },
+  libraryLink: {
+    alignItems: 'center',
+    backgroundColor: colors.backgroundAlt,
+    borderColor: colors.border,
+    borderRadius: rhythm.cardRadius,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: rhythm.screenX,
+    marginTop: 18,
+    padding: rhythm.cardPadding,
+  },
+  libraryLinkKicker: {
+    ...t.dataSmall,
+    color: colors.accent,
+  },
+  libraryLinkTitle: {
+    color: colors.text,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    marginTop: 4,
+  },
+  empty: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: rhythm.cardRadius,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginHorizontal: rhythm.screenX,
+    marginTop: 18,
+    padding: rhythm.cardPadding,
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontFamily: fonts.serifLight,
+    fontSize: 28,
+    letterSpacing: -0.8,
+  },
+  emptyCopy: {
+    ...t.bodySmall,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
+  emptyButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    justifyContent: 'center',
+    marginTop: 16,
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  emptyButtonText: {
+    color: colors.accentInk,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+  },
   pressed: { opacity: 0.84 },
 });

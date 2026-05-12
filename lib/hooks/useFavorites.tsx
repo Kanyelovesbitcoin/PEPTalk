@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { STORAGE_KEYS } from '@/lib/constants/storage';
 import { storage } from '@/lib/utils/storage';
+import { parseJsonArray, setJsonItem } from '@/lib/utils/storageJson';
 
 interface FavoritesContextValue {
   favoriteIds: string[];
@@ -20,9 +21,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     async function loadFavorites() {
       try {
         const stored = await storage.getItem(STORAGE_KEYS.favoriteIds);
-        if (stored) {
-          setFavoriteIds(JSON.parse(stored) as string[]);
-        }
+        setFavoriteIds(parseJsonArray<string>(stored, STORAGE_KEYS.favoriteIds));
       } finally {
         setIsReady(true);
       }
@@ -36,21 +35,28 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    storage.setItem(STORAGE_KEYS.favoriteIds, JSON.stringify(favoriteIds));
+    setJsonItem(STORAGE_KEYS.favoriteIds, favoriteIds);
   }, [favoriteIds, isReady]);
 
-  const value: FavoritesContextValue = {
+  const isFavorite = useCallback(
+    (compoundId: string) => favoriteIds.includes(compoundId),
+    [favoriteIds],
+  );
+
+  const toggleFavorite = useCallback((compoundId: string) => {
+    setFavoriteIds((current) =>
+      current.includes(compoundId)
+        ? current.filter((id) => id !== compoundId)
+        : [...current, compoundId].sort((left, right) => left.localeCompare(right)),
+    );
+  }, []);
+
+  const value: FavoritesContextValue = useMemo(() => ({
     favoriteIds,
     isReady,
-    isFavorite: (compoundId) => favoriteIds.includes(compoundId),
-    toggleFavorite: (compoundId) => {
-      setFavoriteIds((current) =>
-        current.includes(compoundId)
-          ? current.filter((id) => id !== compoundId)
-          : [...current, compoundId].sort((left, right) => left.localeCompare(right)),
-      );
-    },
-  };
+    isFavorite,
+    toggleFavorite,
+  }), [favoriteIds, isFavorite, isReady, toggleFavorite]);
 
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
 }

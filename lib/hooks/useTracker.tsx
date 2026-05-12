@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { STORAGE_KEYS } from '@/lib/constants/storage';
+import { usePro } from '@/lib/hooks/usePro';
 import {
   cancelScheduleReminders,
   reconcileDoseReminders,
@@ -8,7 +9,8 @@ import {
 } from '@/lib/services/notifications';
 import { getNextScheduledDose, getScheduledDoseForDate, isToday } from '@/lib/utils/trackerDates';
 import { storage } from '@/lib/utils/storage';
-import type { DailyCheckIn, DoseLog, DoseSchedule, ScheduledDosePreview, VialRecipe } from '@/types/tracker';
+import { parseJsonArray, setJsonItem } from '@/lib/utils/storageJson';
+import type { DailyCheckIn, DoseLog, DoseSchedule, DoseStatus, ScheduledDosePreview, VialRecipe } from '@/types/tracker';
 
 type NewDoseLog = Omit<DoseLog, 'id' | 'createdAt' | 'updatedAt'>;
 type NewVialRecipe = Omit<VialRecipe, 'id' | 'createdAt' | 'updatedAt'>;
@@ -32,7 +34,9 @@ interface TrackerContextValue {
   updateSchedule: (scheduleId: string, updates: ScheduleUpdates) => void;
   saveCheckIn: (checkIn: NewDailyCheckIn) => DailyCheckIn;
   logScheduledDose: (scheduleId: string) => DoseLog | null;
+  logScheduledDoseStatus: (scheduleId: string, status: Extract<DoseStatus, 'taken' | 'skipped'>) => DoseLog | null;
   unlogScheduledDose: (scheduleId: string) => void;
+  clearScheduledDoseForToday: (scheduleId: string) => void;
   toggleScheduledDoseForToday: (scheduleId: string) => void;
   toggleSchedule: (scheduleId: string) => void;
   deleteSchedule: (scheduleId: string) => void;
@@ -44,20 +48,28 @@ function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function parseArray<T>(value: string | null): T[] {
-  if (!value) {
-    return [];
-  }
+const PERSIST_DEBOUNCE_MS = 750;
 
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
+function useDebouncedJsonPersistence(key: string, value: unknown, isReady: boolean) {
+  useEffect(() => {
+    if (!isReady) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setJsonItem(key, value);
+    }, PERSIST_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [isReady, key, value]);
+}
+
+function withoutReminders(schedule: DoseSchedule): DoseSchedule {
+  return schedule.remindersEnabled ? { ...schedule, remindersEnabled: false } : schedule;
 }
 
 export function TrackerProvider({ children }: { children: ReactNode }) {
+  const { isPro } = usePro();
   const [doseLogs, setDoseLogs] = useState<DoseLog[]>([]);
   const [vialRecipes, setVialRecipes] = useState<VialRecipe[]>([]);
   const [schedules, setSchedules] = useState<DoseSchedule[]>([]);
@@ -74,43 +86,40 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           storage.getItem(STORAGE_KEYS.dailyCheckIns),
         ]);
 
-        setDoseLogs(parseArray<DoseLog>(storedLogs));
-        setVialRecipes(parseArray<VialRecipe>(storedRecipes));
-        const parsedSchedules = parseArray<DoseSchedule>(storedSchedules);
-        setSchedules(parsedSchedules);
-        setCheckIns(parseArray<DailyCheckIn>(storedCheckIns));
-        reconcileDoseReminders(parsedSchedules).catch(() => undefined);
+        setDoseLogs(parseJsonArray<DoseLog>(storedLogs, STORAGE_KEYS.doseLogs));
+        setVialRecipes(parseJsonArray<VialRecipe>(storedRecipes, STORAGE_KEYS.vialRecipes));
+        const parsedSchedules = parseJsonArray<DoseSchedule>(storedSchedules, STORAGE_KEYS.doseSchedules);
+        setSchedules(isPro ? parsedSchedules : parsedSchedules.map(withoutReminders));
+        setCheckIns(parseJsonArray<DailyCheckIn>(storedCheckIns, STORAGE_KEYS.dailyCheckIns));
+        reconcileDoseReminders(isPro ? parsedSchedules : parsedSchedules.map(withoutReminders)).catch(() => undefined);
       } finally {
         setIsReady(true);
       }
     }
 
     loadTrackerState();
-  }, []);
+  }, [isPro]);
 
   useEffect(() => {
-    if (isReady) {
-      storage.setItem(STORAGE_KEYS.doseLogs, JSON.stringify(doseLogs));
+    if (!isReady || isPro) {
+      return;
     }
-  }, [doseLogs, isReady]);
 
-  useEffect(() => {
-    if (isReady) {
-      storage.setItem(STORAGE_KEYS.vialRecipes, JSON.stringify(vialRecipes));
+    const schedulesWithReminders = schedules.filter((schedule) => schedule.remindersEnabled);
+    if (schedulesWithReminders.length === 0) {
+      return;
     }
-  }, [isReady, vialRecipes]);
 
-  useEffect(() => {
-    if (isReady) {
-      storage.setItem(STORAGE_KEYS.doseSchedules, JSON.stringify(schedules));
-    }
-  }, [isReady, schedules]);
+    schedulesWithReminders.forEach((schedule) => {
+      cancelScheduleReminders(schedule.id).catch(() => undefined);
+    });
+    setSchedules((current) => current.map(withoutReminders));
+  }, [isPro, isReady, schedules]);
 
-  useEffect(() => {
-    if (isReady) {
-      storage.setItem(STORAGE_KEYS.dailyCheckIns, JSON.stringify(checkIns));
-    }
-  }, [checkIns, isReady]);
+  useDebouncedJsonPersistence(STORAGE_KEYS.doseLogs, doseLogs, isReady);
+  useDebouncedJsonPersistence(STORAGE_KEYS.vialRecipes, vialRecipes, isReady);
+  useDebouncedJsonPersistence(STORAGE_KEYS.doseSchedules, schedules, isReady);
+  useDebouncedJsonPersistence(STORAGE_KEYS.dailyCheckIns, checkIns, isReady);
 
   const sortedLogs = useMemo(
     () => [...doseLogs].sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt)),
@@ -139,7 +148,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => a!.scheduledAt.localeCompare(b!.scheduledAt))[0] ?? null;
   }, [schedules]);
 
-  const value: TrackerContextValue = {
+  const value: TrackerContextValue = useMemo(() => ({
     isReady,
     doseLogs: sortedLogs,
     vialRecipes,
@@ -183,29 +192,31 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         ...schedule,
         id: createId('schedule'),
         createdAt: now,
+        remindersEnabled: isPro && schedule.remindersEnabled,
         updatedAt: now,
       };
       setSchedules((current) => [newSchedule, ...current]);
-      if (newSchedule.remindersEnabled) {
+      if (isPro && newSchedule.remindersEnabled) {
         scheduleDoseReminders(newSchedule).catch(() => undefined);
       }
       return newSchedule;
     },
     updateSchedule: (scheduleId, updates) => {
       const existing = schedules.find((item) => item.id === scheduleId);
+      const normalizedUpdates = isPro ? updates : { ...updates, remindersEnabled: false };
       const updatedSchedule = existing
-        ? { ...existing, ...updates, updatedAt: new Date().toISOString() }
+        ? { ...existing, ...normalizedUpdates, updatedAt: new Date().toISOString() }
         : null;
 
       if (existing?.remindersEnabled) {
         cancelScheduleReminders(scheduleId).catch(() => undefined);
       }
-      if (updatedSchedule?.active && updatedSchedule.remindersEnabled) {
+      if (isPro && updatedSchedule?.active && updatedSchedule.remindersEnabled) {
         scheduleDoseReminders(updatedSchedule).catch(() => undefined);
       }
 
       setSchedules((current) =>
-        current.map((schedule) => (schedule.id === scheduleId ? { ...schedule, ...updates, updatedAt: new Date().toISOString() } : schedule)),
+        current.map((schedule) => (schedule.id === scheduleId ? { ...schedule, ...normalizedUpdates, updatedAt: new Date().toISOString() } : schedule)),
       );
     },
     saveCheckIn: (checkIn) => {
@@ -270,9 +281,48 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       });
       return newDose;
     },
+    logScheduledDoseStatus: (scheduleId, status) => {
+      const schedule = schedules.find((item) => item.id === scheduleId);
+      if (!schedule || !schedule.active || schedule.amount <= 0) {
+        return null;
+      }
+
+      const preview = getScheduledDoseForDate(schedule);
+      if (!preview) {
+        return null;
+      }
+
+      const now = new Date().toISOString();
+      const newDose: DoseLog = {
+        administrationRoute: schedule.administrationRoute,
+        amount: schedule.amount,
+        compoundId: schedule.compoundId,
+        createdAt: now,
+        id: createId('dose'),
+        injectionSite: schedule.injectionSite,
+        scheduleId,
+        scheduledAt: preview.scheduledAt,
+        status,
+        takenAt: status === 'taken' ? now : undefined,
+        unit: schedule.unit,
+        updatedAt: now,
+        vialRecipeId: schedule.vialRecipeId,
+      };
+
+      setDoseLogs((current) => [
+        newDose,
+        ...current.filter((log) => !(log.scheduleId === scheduleId && isToday(log.scheduledAt))),
+      ]);
+      return newDose;
+    },
     unlogScheduledDose: (scheduleId) => {
       setDoseLogs((current) =>
-        current.filter((log) => !(log.scheduleId === scheduleId && log.status === 'taken' && isToday(log.scheduledAt))),
+        current.filter((log) => !(log.scheduleId === scheduleId && isToday(log.scheduledAt))),
+      );
+    },
+    clearScheduledDoseForToday: (scheduleId) => {
+      setDoseLogs((current) =>
+        current.filter((log) => !(log.scheduleId === scheduleId && isToday(log.scheduledAt))),
       );
     },
     toggleScheduledDoseForToday: (scheduleId) => {
@@ -312,14 +362,17 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
         vialRecipeId: schedule.vialRecipeId,
       };
-      setDoseLogs((current) => [newDose, ...current]);
+      setDoseLogs((current) => [
+        newDose,
+        ...current.filter((log) => !(log.scheduleId === scheduleId && isToday(log.scheduledAt))),
+      ]);
     },
     toggleSchedule: (scheduleId) => {
       const schedule = schedules.find((item) => item.id === scheduleId);
       if (schedule) {
         if (schedule.active) {
           cancelScheduleReminders(scheduleId).catch(() => undefined);
-        } else if (schedule.remindersEnabled) {
+        } else if (isPro && schedule.remindersEnabled) {
           scheduleDoseReminders({ ...schedule, active: true }).catch(() => undefined);
         }
       }
@@ -336,7 +389,19 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       cancelScheduleReminders(scheduleId).catch(() => undefined);
       setSchedules((current) => current.filter((schedule) => schedule.id !== scheduleId));
     },
-  };
+  }), [
+    checkIns,
+    doseLogs,
+    isReady,
+    isPro,
+    nextDose,
+    schedules,
+    sortedCheckIns,
+    sortedLogs,
+    todayCheckIn,
+    todayLogs,
+    vialRecipes,
+  ]);
 
   return <TrackerContext.Provider value={value}>{children}</TrackerContext.Provider>;
 }
