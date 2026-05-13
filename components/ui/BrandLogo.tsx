@@ -11,7 +11,7 @@ export function BrandLogo({ height = 64, style, width = 52 }: BrandLogoProps) {
     <Image
       accessibilityIgnoresInvertColors
       resizeMode="contain"
-      source={require('@/assets/images/Glowpep.png')}
+      source={require('@/assets/images/glowpep-app-icon.png')}
       style={[styles.logo, { height, width }, style]}
     />
   );

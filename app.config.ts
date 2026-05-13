@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   splash: {
-    image: './assets/images/Glowpep.png',
+    image: './assets/images/glowpep-app-icon.png',
     resizeMode: 'contain',
     backgroundColor: '#0A0907',
   },
@@ -24,6 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
+    versionCode: 6,
     adaptiveIcon: {
       foregroundImage: './assets/images/glowpep-app-icon.png',
       backgroundColor: '#0A0907',
